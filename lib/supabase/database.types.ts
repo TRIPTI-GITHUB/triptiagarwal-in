@@ -26,3 +26,34 @@ export interface Post {
   created_at: string;
   updated_at: string;
 }
+
+/**
+ * ExhibitType
+ * Mirrors the database "check" constraint on exhibits.type (Step 2.1) —
+ * keeping this in sync ensures TypeScript rejects invalid values at
+ * write-time, matching what Postgres already enforces at save-time.
+ */
+export type ExhibitType = "stamps" | "coins" | "mixed";
+
+export interface Exhibit {
+  id: string;
+  title: string;
+  slug: string;
+  type: ExhibitType;
+  description: string | null;
+  sheet_count: number;
+  cover_image_url: string | null;
+  published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ExhibitSheet {
+  id: string;
+  exhibit_id: string;
+  sheet_number: number;
+  image_url: string;
+  caption: string | null;
+  created_at: string;
+  updated_at: string;
+}
