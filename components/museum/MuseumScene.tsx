@@ -4,9 +4,7 @@ import { useState } from "react";
 import { Canvas } from "@react-three/fiber";
 import { FirstPersonControls } from "@/components/museum/FirstPersonControls";
 
-const ROOM_WIDTH = 10;
-const ROOM_DEPTH = 8;
-const ROOM_HEIGHT = 4;
+import { ROOM_WIDTH, ROOM_DEPTH, ROOM_HEIGHT } from "@/lib/museum/constants";
 
 /**
  * Room

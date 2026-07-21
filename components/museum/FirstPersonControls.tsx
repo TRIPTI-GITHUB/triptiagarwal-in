@@ -5,8 +5,9 @@ import { useFrame, useThree } from "@react-three/fiber";
 import { PointerLockControls } from "@react-three/drei";
 import * as THREE from "three";
 
+import { ROOM_WIDTH, ROOM_DEPTH, EYE_HEIGHT, WALL_MARGIN } from "@/lib/museum/constants";
+
 const MOVE_SPEED = 3; // meters per second
-const EYE_HEIGHT = 1.6;
 
 interface FirstPersonControlsProps {
   onLockChange: (locked: boolean) => void;
@@ -101,10 +102,18 @@ export function FirstPersonControls({ onLockChange }: FirstPersonControlsProps) 
 
     const distance = MOVE_SPEED * delta;
 
-    if (keys.current.forward) camera.position.addScaledVector(forward, distance);
+   if (keys.current.forward) camera.position.addScaledVector(forward, distance);
     if (keys.current.backward) camera.position.addScaledVector(forward, -distance);
     if (keys.current.right) camera.position.addScaledVector(right, distance);
     if (keys.current.left) camera.position.addScaledVector(right, -distance);
+
+    // Boundaries: clamp position so it can never pass through a wall.
+    // Each wall sits at +/- half the room's width/depth; WALL_MARGIN
+    // keeps the camera a small, comfortable distance short of that.
+    const maxX = ROOM_WIDTH / 2 - WALL_MARGIN;
+    const maxZ = ROOM_DEPTH / 2 - WALL_MARGIN;
+    camera.position.x = THREE.MathUtils.clamp(camera.position.x, -maxX, maxX);
+    camera.position.z = THREE.MathUtils.clamp(camera.position.z, -maxZ, maxZ);
 
     // Keep eye height fixed - prevents "flying" or "sinking" from
     // accumulated floating-point drift during movement.
