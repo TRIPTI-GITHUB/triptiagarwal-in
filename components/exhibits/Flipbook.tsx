@@ -1,7 +1,6 @@
 "use client";
 
-import { forwardRef } from "react";
-import HTMLFlipBook from "react-pageflip";
+import { useState } from "react";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
 interface FlipbookProps {
@@ -9,52 +8,57 @@ interface FlipbookProps {
   title: string;
 }
 
-/**
- * Page
- * A single flippable page inside the book — just a full-bleed sheet
- * image. forwardRef is required here because react-pageflip needs
- * direct access to each page's underlying DOM element to animate it.
- */
-const Page = forwardRef<HTMLDivElement, { sheet: ExhibitSheet; title: string }>(
-  ({ sheet, title }, ref) => (
-    <div ref={ref} className="bg-white flex items-center justify-center">
-      <img
-        src={sheet.image_url}
-        alt={`${title} — Sheet ${sheet.sheet_number}`}
-        className="w-full h-full object-contain"
-      />
-    </div>
-  )
-);
-Page.displayName = "Page";
+export function Flipbook(props: FlipbookProps) {
+  const sheets = props.sheets;
+  const title = props.title;
+  const [index, setIndex] = useState(0);
 
-/**
- * Flipbook
- * Client Component — renders an exhibit's sheets as a page-turning
- * book using react-pageflip. Must be a Client Component ("use client")
- * because the flip interaction (drag, click) runs entirely in the
- * browser, unlike the Server Component that fetches the sheet data.
- */
-export function Flipbook({ sheets, title }: FlipbookProps) {
+  const sheet = sheets[index];
+
+  function goPrev() {
+    if (index > 0) {
+      setIndex(index - 1);
+    }
+  }
+
+  function goNext() {
+    if (index < sheets.length - 1) {
+      setIndex(index + 1);
+    }
+  }
+
   return (
-    <div className="flex justify-center">
-      {/* @ts-expect-error react-pageflip's types don't fully match React 19 yet */}
-      <HTMLFlipBook
-        width={500}
-        height={700}
-        size="stretch"
-        minWidth={300}
-        maxWidth={800}
-        minHeight={400}
-        maxHeight={1100}
-        showCover={false}
-        maxShadowOpacity={0.4}
-        className="shadow-xl"
-      >
-        {sheets.map((sheet) => (
-          <Page key={sheet.id} sheet={sheet} title={title} />
-        ))}
-      </HTMLFlipBook>
+    <div className="flex flex-col items-center">
+      <div className="w-full max-w-2xl aspect-[4/3] bg-white border border-brand-gold/20 shadow-xl flex items-center justify-center overflow-hidden">
+        <img
+          key={sheet.id}
+          src={sheet.image_url}
+          alt={title + " - Sheet " + sheet.sheet_number}
+          className="w-full h-full object-contain"
+        />
+      </div>
+
+      <div className="flex items-center gap-6 mt-6">
+        <button
+          onClick={goPrev}
+          disabled={index === 0}
+          className="px-4 py-2 rounded-full border border-brand-gold/40 text-brand-charcoal text-sm font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:bg-brand-gold/10 transition-colors"
+        >
+          Previous
+        </button>
+
+        <p className="text-sm text-brand-charcoal/70 tabular-nums">
+          Sheet {index + 1} of {sheets.length}
+        </p>
+
+        <button
+          onClick={goNext}
+          disabled={index === sheets.length - 1}
+          className="px-4 py-2 rounded-full border border-brand-gold/40 text-brand-charcoal text-sm font-medium disabled:opacity-30 disabled:cursor-not-allowed hover:bg-brand-gold/10 transition-colors"
+        >
+          Next
+        </button>
+      </div>
     </div>
   );
 }
