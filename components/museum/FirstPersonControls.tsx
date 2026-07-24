@@ -3,11 +3,9 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { PointerLockControls } from "@react-three/drei";
-import * as THREE from "three";
+import { moveCamera } from "@/lib/museum/movement";
 
-import { ROOM_WIDTH, ROOM_DEPTH, EYE_HEIGHT, WALL_MARGIN } from "@/lib/museum/constants";
-
-const MOVE_SPEED = 3; // meters per second
+const MOVE_SPEED = 3;
 
 interface FirstPersonControlsProps {
   onLockChange: (locked: boolean) => void;
@@ -15,19 +13,15 @@ interface FirstPersonControlsProps {
 
 /**
  * FirstPersonControls
- * Client Component — combines mouse-look (via drei's PointerLockControls,
- * which wraps the browser's native Pointer Lock API) with WASD/arrow-key
- * movement that we implement ourselves. Movement direction is derived
- * from the camera's current facing angle each frame, so "forward"
- * always means "the way you're looking," like a real first-person game.
+ * Client Component - desktop first-person controls. Mouse-look comes
+ * from drei's PointerLockControls (wrapping the browser's native
+ * Pointer Lock API); WASD/arrow-key movement is read here and applied
+ * every frame via the shared moveCamera function, which also handles
+ * staying inside the room's walls.
  */
 export function FirstPersonControls({ onLockChange }: FirstPersonControlsProps) {
   const { camera } = useThree();
 
-  // Tracks which movement keys are currently held down. A ref (not
-  // state) is used here because this updates constantly during
-  // movement — using React state for this would cause far more
-  // re-renders than necessary.
   const keys = useRef({
     forward: false,
     backward: false,
@@ -87,37 +81,10 @@ export function FirstPersonControls({ onLockChange }: FirstPersonControlsProps) 
     };
   }, []);
 
-  // useFrame runs once per rendered frame (roughly 60 times per second) -
-  // this is where we actually move the camera based on which keys are
-  // currently held, scaled by "delta" (time since the last frame) so
-  // movement speed stays consistent regardless of frame rate.
   useFrame((_, delta) => {
-    const forward = new THREE.Vector3();
-    camera.getWorldDirection(forward);
-    forward.y = 0;
-    forward.normalize();
-
-    const right = new THREE.Vector3();
-    right.crossVectors(forward, camera.up).normalize();
-
-    const distance = MOVE_SPEED * delta;
-
-   if (keys.current.forward) camera.position.addScaledVector(forward, distance);
-    if (keys.current.backward) camera.position.addScaledVector(forward, -distance);
-    if (keys.current.right) camera.position.addScaledVector(right, distance);
-    if (keys.current.left) camera.position.addScaledVector(right, -distance);
-
-    // Boundaries: clamp position so it can never pass through a wall.
-    // Each wall sits at +/- half the room's width/depth; WALL_MARGIN
-    // keeps the camera a small, comfortable distance short of that.
-    const maxX = ROOM_WIDTH / 2 - WALL_MARGIN;
-    const maxZ = ROOM_DEPTH / 2 - WALL_MARGIN;
-    camera.position.x = THREE.MathUtils.clamp(camera.position.x, -maxX, maxX);
-    camera.position.z = THREE.MathUtils.clamp(camera.position.z, -maxZ, maxZ);
-
-    // Keep eye height fixed - prevents "flying" or "sinking" from
-    // accumulated floating-point drift during movement.
-    camera.position.y = EYE_HEIGHT;
+    const moveZ = (keys.current.forward ? 1 : 0) - (keys.current.backward ? 1 : 0);
+    const moveX = (keys.current.right ? 1 : 0) - (keys.current.left ? 1 : 0);
+    moveCamera(camera, moveX, moveZ, MOVE_SPEED * delta);
   });
 
   return (
