@@ -3,15 +3,16 @@
 import { Suspense } from "react";
 import { useTexture } from "@react-three/drei";
 import { FRAME_WIDTH, FRAME_HEIGHT } from "@/lib/museum/constants";
+import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
 interface FrameArtworkProps {
-  imageUrl: string;
+  sheet: ExhibitSheet;
 }
 
-function FrameArtwork({ imageUrl }: FrameArtworkProps) {
-  const texture = useTexture(imageUrl);
+function FrameArtwork({ sheet }: FrameArtworkProps) {
+  const texture = useTexture(sheet.image_url);
   return (
-    <mesh position={[0, 0, 0.02]}>
+    <mesh position={[0, 0, 0.02]} userData={{ isExhibitFrame: true, sheet: sheet }}>
       <planeGeometry args={[FRAME_WIDTH - 0.15, FRAME_HEIGHT - 0.15]} />
       <meshStandardMaterial map={texture} />
     </mesh>
@@ -19,20 +20,19 @@ function FrameArtwork({ imageUrl }: FrameArtworkProps) {
 }
 
 interface FrameProps {
-  imageUrl: string;
+  sheet: ExhibitSheet;
   position: [number, number, number];
   rotationY: number;
 }
 
 /**
  * Frame
- * A single mounted exhibit sheet: a gold-toned backing panel plus the
- * sheet image itself. Wrapped in Suspense because useTexture "pauses"
- * rendering until the image finishes loading over the network - the
- * fallback keeps a plain gold panel visible in the meantime instead
- * of the whole scene breaking while images load.
+ * A single mounted exhibit sheet. The artwork mesh carries
+ * `userData.isExhibitFrame` and the full sheet record - this is what
+ * FrameInteraction's raycaster reads to identify which sheet is
+ * currently being looked at.
  */
-export function Frame({ imageUrl, position, rotationY }: FrameProps) {
+export function Frame({ sheet, position, rotationY }: FrameProps) {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <mesh>
@@ -40,7 +40,7 @@ export function Frame({ imageUrl, position, rotationY }: FrameProps) {
         <meshStandardMaterial color="#b08d57" />
       </mesh>
       <Suspense fallback={null}>
-        <FrameArtwork imageUrl={imageUrl} />
+        <FrameArtwork sheet={sheet} />
       </Suspense>
     </group>
   );

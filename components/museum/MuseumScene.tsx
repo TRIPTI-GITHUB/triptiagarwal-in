@@ -7,9 +7,13 @@ import { MobileCameraRig } from "@/components/museum/MobileCameraRig";
 import { TouchJoystick } from "@/components/museum/TouchJoystick";
 import { TouchLookArea } from "@/components/museum/TouchLookArea";
 import { GallerySections } from "@/components/museum/GallerySections";
+import { FrameInteraction } from "@/components/museum/FrameInteraction";
+import { Crosshair } from "@/components/museum/Crosshair";
+import { SheetModal } from "@/components/museum/SheetModal";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
 import { ROOM_HEIGHT, SECTION_DEPTH } from "@/lib/museum/constants";
 import type { MuseumSection } from "@/lib/museum/layout";
+import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
 interface MuseumSceneProps {
   sections: MuseumSection[];
@@ -17,18 +21,25 @@ interface MuseumSceneProps {
 
 /**
  * MuseumScene
- * Client Component - the entry point into the 3D world. Detects
- * touch vs. desktop and renders the matching control scheme; both
- * ultimately move the same camera through the same GallerySections
- * layout, built from real Supabase data passed in as `sections`.
+ * Client Component - the entry point into the 3D world. Owns hover
+ * and selection state for the click-to-view feature, in addition to
+ * the lock state and control-scheme detection from earlier steps.
  */
 export function MuseumScene({ sections }: MuseumSceneProps) {
   const [isLocked, setIsLocked] = useState(false);
+  const [hoveredSheet, setHoveredSheet] = useState<ExhibitSheet | null>(null);
+  const [selectedSheet, setSelectedSheet] = useState<ExhibitSheet | null>(null);
   const isTouch = useIsTouchDevice();
   const numSections = sections.length;
 
   const touchMoveRef = useRef({ x: 0, y: 0 });
   const touchLookRef = useRef({ x: 0, y: 0 });
+
+  const crosshairLabel = hoveredSheet
+    ? "Sheet " +
+      hoveredSheet.sheet_number +
+      (isTouch ? " - tap View below" : " - click to view")
+    : null;
 
   return (
     <div className="relative w-full h-[600px] bg-black">
@@ -36,12 +47,19 @@ export function MuseumScene({ sections }: MuseumSceneProps) {
         <ambientLight intensity={0.5} />
         <pointLight position={[0, ROOM_HEIGHT - 0.5, 0]} intensity={1} />
         <GallerySections sections={sections} />
+        <FrameInteraction onHoverChange={setHoveredSheet} onSelect={setSelectedSheet} />
         {isTouch ? (
-          <MobileCameraRig moveRef={touchMoveRef} lookRef={touchLookRef} numSections={numSections} />
+          <MobileCameraRig
+            moveRef={touchMoveRef}
+            lookRef={touchLookRef}
+            numSections={numSections}
+          />
         ) : (
           <FirstPersonControls onLockChange={setIsLocked} numSections={numSections} />
         )}
       </Canvas>
+
+      <Crosshair label={crosshairLabel} />
 
       {isTouch ? (
         <>
@@ -52,6 +70,14 @@ export function MuseumScene({ sections }: MuseumSceneProps) {
               Drag left side to move - drag right side to look
             </p>
           </div>
+          {hoveredSheet && (
+            <button
+              onClick={() => setSelectedSheet(hoveredSheet)}
+              className="absolute bottom-8 right-8 bg-brand-gold text-white text-sm font-medium px-5 py-3 rounded-full shadow-lg z-10"
+            >
+              View Sheet
+            </button>
+          )}
         </>
       ) : (
         <>
@@ -68,11 +94,15 @@ export function MuseumScene({ sections }: MuseumSceneProps) {
           {isLocked && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 pointer-events-none">
               <p className="text-white/70 text-xs bg-black/50 px-3 py-1 rounded-full">
-                WASD to move - Esc to exit
+                WASD to move - Esc to exit - click a frame to view it
               </p>
             </div>
           )}
         </>
+      )}
+
+      {selectedSheet && (
+        <SheetModal sheet={selectedSheet} onClose={() => setSelectedSheet(null)} />
       )}
     </div>
   );

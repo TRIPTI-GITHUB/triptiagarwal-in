@@ -103,7 +103,7 @@ export function GallerySections({ sections }: GallerySectionsProps) {
       {placements.map((p) => (
         <Frame
           key={p.sheet.id}
-          imageUrl={p.sheet.image_url}
+          sheet={p.sheet}
           position={[p.x, p.y, p.z]}
           rotationY={p.rotationY}
         />
