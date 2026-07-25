@@ -1,16 +1,20 @@
 /**
- * Shared measurements for the 3D museum. Kept in one place so the
- * room shell (MuseumScene) and the movement/collision logic
- * (FirstPersonControls) always agree on the room's actual size -
- * changing the room's dimensions only ever requires editing this
- * one file.
+ * Shared measurements for the 3D museum.
  */
 export const ROOM_WIDTH = 10;
-export const ROOM_DEPTH = 8;
+export const SECTION_DEPTH = 8;
 export const ROOM_HEIGHT = 4;
 export const EYE_HEIGHT = 1.6;
-
-// How close the camera is allowed to get to a wall before being
-// stopped - roughly an arm's length, so you don't feel like your
-// face is pressed directly into the wall texture.
 export const WALL_MARGIN = 0.5;
+
+// Width of the walkable gap left open in each divider wall between
+// sections - wide enough to comfortably walk through.
+export const DOORWAY_WIDTH = 2.5;
+
+// How "thick" a divider wall is treated as, for collision purposes.
+export const WALL_THICKNESS = 0.2;
+
+// Size of each mounted sheet frame.
+export const FRAME_WIDTH = 2.2;
+export const FRAME_HEIGHT = 1.6;
+export const FRAME_Y = 1.8; // mounting height on the wall

@@ -6,78 +6,40 @@ import { FirstPersonControls } from "@/components/museum/FirstPersonControls";
 import { MobileCameraRig } from "@/components/museum/MobileCameraRig";
 import { TouchJoystick } from "@/components/museum/TouchJoystick";
 import { TouchLookArea } from "@/components/museum/TouchLookArea";
+import { GallerySections } from "@/components/museum/GallerySections";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
-import { ROOM_WIDTH, ROOM_DEPTH, ROOM_HEIGHT } from "@/lib/museum/constants";
+import { ROOM_HEIGHT, SECTION_DEPTH } from "@/lib/museum/constants";
+import type { MuseumSection } from "@/lib/museum/layout";
 
-/**
- * Room
- * The physical shell of one gallery section - floor, ceiling, and
- * four walls, sized by ROOM_WIDTH/DEPTH/HEIGHT.
- */
-function Room() {
-  return (
-    <group>
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]}>
-        <planeGeometry args={[ROOM_WIDTH, ROOM_DEPTH]} />
-        <meshStandardMaterial color="#3a3226" />
-      </mesh>
-
-      <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_HEIGHT, 0]}>
-        <planeGeometry args={[ROOM_WIDTH, ROOM_DEPTH]} />
-        <meshStandardMaterial color="#f5f0e6" />
-      </mesh>
-
-      <mesh position={[0, ROOM_HEIGHT / 2, -ROOM_DEPTH / 2]}>
-        <planeGeometry args={[ROOM_WIDTH, ROOM_HEIGHT]} />
-        <meshStandardMaterial color="#e8e2d5" />
-      </mesh>
-
-      <mesh position={[0, ROOM_HEIGHT / 2, ROOM_DEPTH / 2]} rotation={[0, Math.PI, 0]}>
-        <planeGeometry args={[ROOM_WIDTH, ROOM_HEIGHT]} />
-        <meshStandardMaterial color="#e8e2d5" />
-      </mesh>
-
-      <mesh position={[-ROOM_WIDTH / 2, ROOM_HEIGHT / 2, 0]} rotation={[0, Math.PI / 2, 0]}>
-        <planeGeometry args={[ROOM_DEPTH, ROOM_HEIGHT]} />
-        <meshStandardMaterial color="#e8e2d5" />
-      </mesh>
-
-      <mesh position={[ROOM_WIDTH / 2, ROOM_HEIGHT / 2, 0]} rotation={[0, -Math.PI / 2, 0]}>
-        <planeGeometry args={[ROOM_DEPTH, ROOM_HEIGHT]} />
-        <meshStandardMaterial color="#e8e2d5" />
-      </mesh>
-    </group>
-  );
+interface MuseumSceneProps {
+  sections: MuseumSection[];
 }
 
 /**
  * MuseumScene
  * Client Component - the entry point into the 3D world. Detects
- * touch vs. desktop (useIsTouchDevice) and renders the matching
- * control scheme: PointerLockControls + keyboard for desktop, or a
- * virtual joystick + drag-to-look for touch. Both schemes ultimately
- * move the same camera using the same shared moveCamera logic.
+ * touch vs. desktop and renders the matching control scheme; both
+ * ultimately move the same camera through the same GallerySections
+ * layout, built from real Supabase data passed in as `sections`.
  */
-export function MuseumScene() {
+export function MuseumScene({ sections }: MuseumSceneProps) {
   const [isLocked, setIsLocked] = useState(false);
   const isTouch = useIsTouchDevice();
+  const numSections = sections.length;
 
-  // Shared between the touch UI (outside the Canvas) and
-  // MobileCameraRig (inside the Canvas) - refs, not state, since
-  // these update continuously and don't need to trigger re-renders.
   const touchMoveRef = useRef({ x: 0, y: 0 });
   const touchLookRef = useRef({ x: 0, y: 0 });
 
   return (
     <div className="relative w-full h-[600px] bg-black">
-      <Canvas camera={{ position: [0, 1.6, 3], fov: 60 }}>
-        <ambientLight intensity={0.4} />
+      <Canvas camera={{ position: [0, 1.6, SECTION_DEPTH / 2 - 1], fov: 60 }}>
+        <ambientLight intensity={0.5} />
         <pointLight position={[0, ROOM_HEIGHT - 0.5, 0]} intensity={1} />
-        <Room />
+        <GallerySections sections={sections} />
         {isTouch ? (
-          <MobileCameraRig moveRef={touchMoveRef} lookRef={touchLookRef} />
+          <MobileCameraRig moveRef={touchMoveRef} lookRef={touchLookRef} numSections={numSections} />
         ) : (
-          <FirstPersonControls onLockChange={setIsLocked} />
+          <FirstPersonControls onLockChange={setIsLocked} numSections={numSections} />
         )}
       </Canvas>
 

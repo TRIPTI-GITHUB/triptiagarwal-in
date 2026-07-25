@@ -9,17 +9,20 @@ const MOVE_SPEED = 3;
 
 interface FirstPersonControlsProps {
   onLockChange: (locked: boolean) => void;
+  numSections: number;
 }
 
 /**
  * FirstPersonControls
  * Client Component - desktop first-person controls. Mouse-look comes
- * from drei's PointerLockControls (wrapping the browser's native
- * Pointer Lock API); WASD/arrow-key movement is read here and applied
- * every frame via the shared moveCamera function, which also handles
- * staying inside the room's walls.
+ * from drei's PointerLockControls; WASD/arrow-key movement is read
+ * here and applied every frame via the shared moveCamera function,
+ * which also handles collision against the current gallery layout.
  */
-export function FirstPersonControls({ onLockChange }: FirstPersonControlsProps) {
+export function FirstPersonControls({
+  onLockChange,
+  numSections,
+}: FirstPersonControlsProps) {
   const { camera } = useThree();
 
   const keys = useRef({
@@ -84,7 +87,7 @@ export function FirstPersonControls({ onLockChange }: FirstPersonControlsProps) 
   useFrame((_, delta) => {
     const moveZ = (keys.current.forward ? 1 : 0) - (keys.current.backward ? 1 : 0);
     const moveX = (keys.current.right ? 1 : 0) - (keys.current.left ? 1 : 0);
-    moveCamera(camera, moveX, moveZ, MOVE_SPEED * delta);
+    moveCamera(camera, moveX, moveZ, MOVE_SPEED * delta, numSections);
   });
 
   return (
