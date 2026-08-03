@@ -1,20 +1,11 @@
 /**
- * Shared measurements for the 3D museum.
+ * Shared measurements for the 3D museum's guided corridor walkthrough.
  */
-export const ROOM_WIDTH = 10;
-export const SECTION_DEPTH = 8;
+export const WALL_OFFSET = 4; // distance from the walking path to each side wall
+export const SHEET_SPACING = 4.5; // distance between consecutive sheets along the corridor
 export const ROOM_HEIGHT = 4;
 export const EYE_HEIGHT = 1.6;
-export const WALL_MARGIN = 0.5;
-
-// Width of the walkable gap left open in each divider wall between
-// sections - wide enough to comfortably walk through.
-export const DOORWAY_WIDTH = 2.5;
-
-// How "thick" a divider wall is treated as, for collision purposes.
-export const WALL_THICKNESS = 0.2;
-
-// Size of each mounted sheet frame.
-export const FRAME_WIDTH = 2.2;
-export const FRAME_HEIGHT = 1.6;
-export const FRAME_Y = 1.8; // mounting height on the wall
+export const FRAME_Y = 1.8; // vertical mounting height of each sheet
+export const FRAME_WIDTH = 3.7;
+export const FRAME_HEIGHT = 2.4;
+export const WALK_SPEED = 3.5; // higher = faster glide between stops

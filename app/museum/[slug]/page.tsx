@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Exhibit, ExhibitSheet } from "@/lib/supabase/database.types";
-import type { MuseumSection } from "@/lib/museum/layout";
 import { MuseumScene } from "@/components/museum/MuseumScene";
 
 interface MuseumPageProps {
@@ -33,35 +32,12 @@ export async function generateMetadata({
 }
 
 /**
- * groupBySections
- * Groups sheets by their section_title (e.g. "Frame 1"). Sheets with
- * no section_title fall into a single default "Gallery" group - this
- * keeps simpler, unsectioned exhibits (like an 8-sheet single-theme
- * piece) working as one room, with no forced complexity.
+ * MuseumPage
+ * Server Component - fetches the exhibit plus every one of its
+ * sheets, ordered by sheet_number, and hands them directly to
+ * MuseumScene as a flat sequence for the guided Next/Previous
+ * walkthrough.
  */
-function groupBySections(sheets: ExhibitSheet[]): MuseumSection[] {
-  const map = new Map<string, ExhibitSheet[]>();
-
-  for (const sheet of sheets) {
-    const key =
-      sheet.section_title && sheet.section_title.trim() !== ""
-        ? sheet.section_title
-        : "Gallery";
-
-    const existing = map.get(key);
-    if (existing) {
-      existing.push(sheet);
-    } else {
-      map.set(key, [sheet]);
-    }
-  }
-
-  return Array.from(map.entries()).map(([title, sectionSheets]) => ({
-    title,
-    sheets: sectionSheets,
-  }));
-}
-
 export default async function MuseumPage({ params }: MuseumPageProps) {
   const { slug } = await params;
   const supabase = await createClient();
@@ -92,8 +68,6 @@ export default async function MuseumPage({ params }: MuseumPageProps) {
     );
   }
 
-  const sections = groupBySections(sheets);
-
   return (
     <div>
       <div className="bg-brand-charcoal text-brand-cream text-center py-3">
@@ -101,7 +75,7 @@ export default async function MuseumPage({ params }: MuseumPageProps) {
           Walking through: <span className="font-semibold">{exhibit.title}</span>
         </p>
       </div>
-      <MuseumScene sections={sections} />
+      <MuseumScene sheets={sheets} />
     </div>
   );
 }

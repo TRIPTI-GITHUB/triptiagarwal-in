@@ -8,19 +8,26 @@ interface SheetModalProps {
   onClose: () => void;
 }
 
+const MIN_SCALE = 1;
+const MAX_SCALE = 3;
+const SCALE_STEP = 0.5;
+
 /**
  * SheetModal
- * Full-screen overlay showing one sheet, with a simple built-in
- * click-to-zoom: clicking toggles between "fit to screen" and
- * "enlarged and scrollable." Built without a third-party zoom
- * library, after react-medium-image-zoom proved unreliable here -
- * same reasoning as replacing react-pageflip earlier in this project.
+ * Full-screen popup for viewing one sheet closely, with explicit
+ * Zoom In / Zoom Out buttons. Built without a third-party zoom
+ * library, for the same reliability reasons the flipbook library
+ * was replaced earlier in this project.
  */
 export function SheetModal({ sheet, onClose }: SheetModalProps) {
-  const [zoomed, setZoomed] = useState(false);
+  const [scale, setScale] = useState(MIN_SCALE);
 
-  function toggleZoom() {
-    setZoomed(!zoomed);
+  function zoomIn() {
+    setScale((s) => Math.min(MAX_SCALE, s + SCALE_STEP));
+  }
+
+  function zoomOut() {
+    setScale((s) => Math.max(MIN_SCALE, s - SCALE_STEP));
   }
 
   return (
@@ -32,32 +39,38 @@ export function SheetModal({ sheet, onClose }: SheetModalProps) {
         Close
       </button>
 
-      <div
-        className={
-          zoomed
-            ? "max-w-2xl w-full max-h-[75vh] overflow-auto"
-            : "max-w-2xl w-full"
-        }
-      >
+      <div className="max-w-3xl w-full max-h-[70vh] overflow-auto">
         <img
           src={sheet.image_url}
           alt={"Sheet " + sheet.sheet_number}
-          onClick={toggleZoom}
-          className={
-            zoomed
-              ? "w-[180%] max-w-none h-auto rounded-sm cursor-zoom-out"
-              : "w-full h-auto rounded-sm cursor-zoom-in"
-          }
+          style={{ width: scale * 100 + "%" }}
+          className="h-auto rounded-sm mx-auto"
         />
       </div>
 
-      <p className="text-white/70 text-sm mt-4">
+      <div className="flex items-center gap-3 mt-5">
+        <button
+          onClick={zoomOut}
+          disabled={scale <= MIN_SCALE}
+          className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white text-lg font-medium disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          -
+        </button>
+        <p className="text-white/70 text-sm w-16 text-center tabular-nums">
+          {Math.round(scale * 100)}%
+        </p>
+        <button
+          onClick={zoomIn}
+          disabled={scale >= MAX_SCALE}
+          className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 text-white text-lg font-medium disabled:opacity-30 disabled:cursor-not-allowed"
+        >
+          +
+        </button>
+      </div>
+
+      <p className="text-white/70 text-sm mt-3">
         Sheet {sheet.sheet_number}
         {sheet.section_title ? " - " + sheet.section_title : ""}
-      </p>
-      <p className="text-white/40 text-xs mt-1">
-        Click the image to zoom {zoomed ? "out" : "in"} - Close to return to
-        the gallery
       </p>
     </div>
   );
