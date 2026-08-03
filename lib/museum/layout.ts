@@ -1,6 +1,7 @@
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
-import { ROOM_SIZE, DOOR_WIDTH, FRAME_Y } from "@/lib/museum/roomConstants";
+import { ROOM_SIZE, DOOR_WIDTH, FRAME_Y, WALL_MARGIN } from "@/lib/museum/roomConstants";
 
+const DOORWAY_HALF = DOOR_WIDTH / 2;
 export interface MuseumRoom {
   title: string;
   sheets: ExhibitSheet[];
@@ -74,4 +75,56 @@ export function getFramePlacements(rooms: MuseumRoom[]): FramePlacement[] {
   });
 
   return placements;
+}
+
+export interface Obstacle {
+  minX: number;
+  maxX: number;
+  minZ: number;
+  maxZ: number;
+}
+
+/**
+ * getOuterBounds
+ * The full hall's outer boundary - front of Room 1 to the back of the
+ * last room, and the left/right side walls (continuous for the whole
+ * hall's length).
+ */
+export function getOuterBounds(numRooms: number) {
+  const half = ROOM_SIZE / 2;
+  return {
+    minX: -half + WALL_MARGIN,
+    maxX: half - WALL_MARGIN,
+    maxZ: entryWallZ(0) - WALL_MARGIN,
+    minZ: exitWallZ(numRooms - 1) + WALL_MARGIN,
+  };
+}
+
+/**
+ * getDoorwayObstacles
+ * Solid collision rectangles for the two wall segments flanking each
+ * doorway (the entry wall of every room, plus the final room's exit
+ * wall) - the doorway gap itself is deliberately excluded, so it
+ * stays walkable.
+ */
+export function getDoorwayObstacles(numRooms: number): Obstacle[] {
+  const half = ROOM_SIZE / 2;
+  const thickness = 0.3;
+  const obstacles: Obstacle[] = [];
+
+  const wallZPositions: number[] = [];
+  for (let i = 0; i < numRooms; i++) {
+    wallZPositions.push(entryWallZ(i));
+  }
+  wallZPositions.push(exitWallZ(numRooms - 1));
+
+  for (const z of wallZPositions) {
+    const zMin = z - thickness / 2 - WALL_MARGIN;
+    const zMax = z + thickness / 2 + WALL_MARGIN;
+
+    obstacles.push({ minX: -half, maxX: -DOORWAY_HALF, minZ: zMin, maxZ: zMax });
+    obstacles.push({ minX: DOORWAY_HALF, maxX: half, minZ: zMin, maxZ: zMax });
+  }
+
+  return obstacles;
 }

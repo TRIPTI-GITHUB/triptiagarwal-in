@@ -1,13 +1,16 @@
 "use client";
 
+import { useRef, useState } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls } from "@react-three/drei";
 import { RoomsShell } from "@/components/museum/RoomsShell";
-import { ROOM_SIZE, EYE_HEIGHT } from "@/lib/museum/constants";
+import { RoomFreeRoam } from "@/components/museum/RoomFreeRoam";
+import { RoomMobileRig } from "@/components/museum/RoomMobileRig";
+import { TouchJoystick } from "@/components/museum/TouchJoystick";
+import { TouchLookArea } from "@/components/museum/TouchLookArea";
+import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
+import { ROOM_SIZE, EYE_HEIGHT } from "@/lib/museum/roomConstants";
 import type { MuseumRoom } from "@/lib/museum/layout";
 
-// Placeholder sheets for preview only - Stage 4 replaces this with
-// real Supabase data grouped by section_title.
 function makeFakeSheets(start: number, count: number) {
   return Array.from({ length: count }).map((_, i) => ({
     id: "fake-" + (start + i),
@@ -28,14 +31,36 @@ const rooms: MuseumRoom[] = [
 ];
 
 export default function MuseumLayoutPreview() {
+  const isTouch = useIsTouchDevice();
+  const touchMoveRef = useRef({ x: 0, y: 0 });
+  const touchLookRef = useRef({ x: 0, y: 0 });
+  const numRooms = rooms.length;
+
   return (
-    <div className="w-full h-screen bg-black">
-      <Canvas camera={{ position: [0, 12, ROOM_SIZE * 1.5], fov: 55 }}>
+    <div className="relative w-full h-screen bg-black">
+      <Canvas camera={{ position: [0, EYE_HEIGHT, ROOM_SIZE], fov: 60 }}>
         <ambientLight intensity={0.6} />
-        <pointLight position={[0, 6, 0]} intensity={1} />
+        <pointLight position={[0, 3.5, 0]} intensity={1} />
         <RoomsShell rooms={rooms} />
-        <OrbitControls target={[0, EYE_HEIGHT, -ROOM_SIZE]} />
+        {isTouch ? (
+          <RoomMobileRig moveRef={touchMoveRef} lookRef={touchLookRef} numRooms={numRooms} />
+        ) : (
+          <RoomFreeRoam numRooms={numRooms} />
+        )}
       </Canvas>
+
+      {isTouch ? (
+        <>
+          <TouchJoystick moveRef={touchMoveRef} />
+          <TouchLookArea lookRef={touchLookRef} />
+        </>
+      ) : (
+        <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none">
+          <p className="text-white/70 text-xs bg-black/50 px-3 py-1 rounded-full">
+            WASD to move - click and drag to look around
+          </p>
+        </div>
+      )}
     </div>
   );
 }
