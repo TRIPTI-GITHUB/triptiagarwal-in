@@ -62,8 +62,8 @@ export function RoomMuseumScene({ rooms }: RoomMuseumSceneProps) {
         </>
       ) : (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none">
-          <p className="text-white/70 text-xs bg-black/50 px-3 py-1 rounded-full">
-            WASD to move - click and drag to look - click a sheet to view it
+           <p className="text-white/70 text-xs bg-black/50 px-3 py-1 rounded-full">
+            W/S to walk - A/D to strafe - Left/Right arrows or drag to look - click a sheet to view it
           </p>
         </div>
       )}

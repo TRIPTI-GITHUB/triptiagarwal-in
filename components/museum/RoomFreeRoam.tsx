@@ -7,8 +7,9 @@ import { moveCameraInRooms } from "@/lib/museum/roomMovement";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
 const MOVE_SPEED = 3;
+const TURN_SPEED = 1.8; // radians per second
 const LOOK_SENSITIVITY = 0.005;
-const CLICK_MOVE_THRESHOLD = 6; // pixels - below this, treat as a click, not a drag
+const CLICK_MOVE_THRESHOLD = 6;
 
 interface RoomFreeRoamProps {
   numRooms: number;
@@ -18,16 +19,23 @@ interface RoomFreeRoamProps {
 /**
  * RoomFreeRoam
  * Client Component - desktop controls for the room-based layout.
- * WASD/arrow keys move; click-and-drag looks around. A pointerdown
- * followed by a pointerup with very little movement in between is
- * treated as a click-to-select: a ray is cast from the camera through
- * the exact clicked screen position to find which sheet (if any) was
- * clicked.
+ * W/S (or Up/Down) move forward/back, A/D strafe sideways, Left/Right
+ * arrow keys turn the view - and click-and-drag on the canvas also
+ * rotates the view for fine adjustments. Combining keyboard turning
+ * with drag-to-look means visitors aren't limited to only one way of
+ * looking around.
  */
 export function RoomFreeRoam({ numRooms, onSelect }: RoomFreeRoamProps) {
   const { camera, gl, scene } = useThree();
 
-  const keys = useRef({ forward: false, backward: false, left: false, right: false });
+  const keys = useRef({
+    forward: false,
+    backward: false,
+    strafeLeft: false,
+    strafeRight: false,
+    turnLeft: false,
+    turnRight: false,
+  });
   const isDragging = useRef(false);
   const pointerDownPos = useRef({ x: 0, y: 0 });
   const lastPointer = useRef({ x: 0, y: 0 });
@@ -41,20 +49,28 @@ export function RoomFreeRoam({ numRooms, onSelect }: RoomFreeRoamProps) {
     function handleKeyDown(e: KeyboardEvent) {
       switch (e.code) {
         case "KeyW":
-        case "ArrowUp":
           keys.current.forward = true;
           break;
         case "KeyS":
-        case "ArrowDown":
           keys.current.backward = true;
           break;
         case "KeyA":
-        case "ArrowLeft":
-          keys.current.left = true;
+          keys.current.strafeLeft = true;
           break;
         case "KeyD":
+          keys.current.strafeRight = true;
+          break;
+        case "ArrowUp":
+          keys.current.forward = true;
+          break;
+        case "ArrowDown":
+          keys.current.backward = true;
+          break;
+        case "ArrowLeft":
+          keys.current.turnLeft = true;
+          break;
         case "ArrowRight":
-          keys.current.right = true;
+          keys.current.turnRight = true;
           break;
       }
     }
@@ -62,20 +78,28 @@ export function RoomFreeRoam({ numRooms, onSelect }: RoomFreeRoamProps) {
     function handleKeyUp(e: KeyboardEvent) {
       switch (e.code) {
         case "KeyW":
-        case "ArrowUp":
           keys.current.forward = false;
           break;
         case "KeyS":
-        case "ArrowDown":
           keys.current.backward = false;
           break;
         case "KeyA":
-        case "ArrowLeft":
-          keys.current.left = false;
+          keys.current.strafeLeft = false;
           break;
         case "KeyD":
+          keys.current.strafeRight = false;
+          break;
+        case "ArrowUp":
+          keys.current.forward = false;
+          break;
+        case "ArrowDown":
+          keys.current.backward = false;
+          break;
+        case "ArrowLeft":
+          keys.current.turnLeft = false;
+          break;
         case "ArrowRight":
-          keys.current.right = false;
+          keys.current.turnRight = false;
           break;
       }
     }
@@ -146,8 +170,11 @@ export function RoomFreeRoam({ numRooms, onSelect }: RoomFreeRoamProps) {
   }, [camera, gl, scene, onSelect]);
 
   useFrame((_, delta) => {
+    if (keys.current.turnLeft) camera.rotation.y += TURN_SPEED * delta;
+    if (keys.current.turnRight) camera.rotation.y -= TURN_SPEED * delta;
+
     const moveZ = (keys.current.forward ? 1 : 0) - (keys.current.backward ? 1 : 0);
-    const moveX = (keys.current.right ? 1 : 0) - (keys.current.left ? 1 : 0);
+    const moveX = (keys.current.strafeRight ? 1 : 0) - (keys.current.strafeLeft ? 1 : 0);
     moveCameraInRooms(camera, moveX, moveZ, MOVE_SPEED * delta, numRooms);
   });
 
