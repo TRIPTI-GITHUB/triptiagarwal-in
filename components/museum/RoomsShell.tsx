@@ -1,13 +1,8 @@
 "use client";
 
 import { Text } from "@react-three/drei";
-import {
-  ROOM_SIZE,
-  ROOM_HEIGHT,
-  DOOR_WIDTH,
-  FRAME_WIDTH,
-  FRAME_HEIGHT,
-} from "@/lib/museum/roomConstants";
+import { RoomFrame } from "@/components/museum/RoomFrame";
+import { ROOM_SIZE, ROOM_HEIGHT, DOOR_WIDTH } from "@/lib/museum/roomConstants";
 import {
   type MuseumRoom,
   totalHallLength,
@@ -21,11 +16,6 @@ interface RoomsShellProps {
   rooms: MuseumRoom[];
 }
 
-/**
- * DoorWall
- * One wall with a centered doorway gap - rendered as two solid
- * segments on either side of the gap, rather than one continuous wall.
- */
 function DoorWall({ z, facing }: { z: number; facing: number }) {
   const half = ROOM_SIZE / 2;
   const segmentWidth = half - DOOR_WIDTH / 2;
@@ -47,9 +37,8 @@ function DoorWall({ z, facing }: { z: number; facing: number }) {
 /**
  * RoomsShell
  * Renders every room's floor, ceiling, side walls, and doorway walls
- * in sequence, plus a numbered placeholder panel at each frame slot.
- * Placeholder panels stand in for real sheet images until a later
- * stage wires up actual textures.
+ * in sequence, plus every sheet mounted as a real textured RoomFrame -
+ * all derived from the shared layout math in lib/museum/layout.ts.
  */
 export function RoomsShell({ rooms }: RoomsShellProps) {
   const numRooms = rooms.length;
@@ -101,15 +90,12 @@ export function RoomsShell({ rooms }: RoomsShellProps) {
       ))}
 
       {placements.map((p) => (
-        <group key={p.sheet.id} position={[p.x, p.y, p.z]} rotation={[0, p.rotationY, 0]}>
-          <mesh>
-            <planeGeometry args={[FRAME_WIDTH, FRAME_HEIGHT]} />
-            <meshStandardMaterial color="#b08d57" />
-          </mesh>
-          <Text position={[0, 0, 0.02]} fontSize={0.4} color="white" anchorX="center" anchorY="middle">
-            {p.sheet.sheet_number}
-          </Text>
-        </group>
+        <RoomFrame
+          key={p.sheet.id}
+          sheet={p.sheet}
+          position={[p.x, p.y, p.z]}
+          rotationY={p.rotationY}
+        />
       ))}
     </group>
   );

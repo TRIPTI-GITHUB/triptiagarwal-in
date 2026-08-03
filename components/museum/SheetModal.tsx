@@ -40,11 +40,11 @@ export function SheetModal({ sheet, onClose }: SheetModalProps) {
       </button>
 
       <div className="max-w-3xl w-full max-h-[70vh] overflow-auto">
-        <img
+       <img
           src={sheet.image_url}
           alt={"Sheet " + sheet.sheet_number}
           style={{ width: scale * 100 + "%" }}
-          className="h-auto rounded-sm mx-auto"
+          className="h-auto rounded-sm mx-auto max-w-none"
         />
       </div>
 
