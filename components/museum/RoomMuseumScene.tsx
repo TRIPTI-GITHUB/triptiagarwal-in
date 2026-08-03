@@ -8,6 +8,8 @@ import { RoomMobileRig } from "@/components/museum/RoomMobileRig";
 import { TouchJoystick } from "@/components/museum/TouchJoystick";
 import { TouchLookArea } from "@/components/museum/TouchLookArea";
 import { RotationArrows } from "@/components/museum/RotationArrows";
+import { MinimapTracker, type MinimapPose } from "@/components/museum/MinimapTracker";
+import { Minimap } from "@/components/museum/Minimap";
 import { SheetModal } from "@/components/museum/SheetModal";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
 import { ROOM_SIZE, EYE_HEIGHT } from "@/lib/museum/roomConstants";
@@ -21,9 +23,9 @@ interface RoomMuseumSceneProps {
 /**
  * RoomMuseumScene
  * Client Component - the room-based museum's entry point. Owns
- * turnRef (shared between RotationArrows and whichever control
- * scheme is active) in addition to movement refs and modal state
- * from earlier stages.
+ * poseRef (position/facing, written by MinimapTracker inside the
+ * Canvas, read by Minimap outside it) in addition to movement refs
+ * and modal state from earlier stages.
  */
 export function RoomMuseumScene({ rooms }: RoomMuseumSceneProps) {
   const isTouch = useIsTouchDevice();
@@ -31,6 +33,7 @@ export function RoomMuseumScene({ rooms }: RoomMuseumSceneProps) {
   const touchLookRef = useRef({ x: 0, y: 0 });
   const tapRef = useRef({ x: 0, y: 0, pending: false });
   const turnRef = useRef({ left: false, right: false });
+  const poseRef = useRef<MinimapPose>({ x: 0, z: ROOM_SIZE, facingX: 0, facingZ: -1 });
   const [selectedSheet, setSelectedSheet] = useState<ExhibitSheet | null>(null);
   const numRooms = rooms.length;
 
@@ -40,6 +43,7 @@ export function RoomMuseumScene({ rooms }: RoomMuseumSceneProps) {
         <ambientLight intensity={0.6} />
         <pointLight position={[0, 3.5, 0]} intensity={1} />
         <RoomsShell rooms={rooms} />
+        <MinimapTracker poseRef={poseRef} />
         {isTouch ? (
           <RoomMobileRig
             moveRef={touchMoveRef}
@@ -73,6 +77,7 @@ export function RoomMuseumScene({ rooms }: RoomMuseumSceneProps) {
       )}
 
       <RotationArrows turnRef={turnRef} />
+      <Minimap numRooms={numRooms} poseRef={poseRef} />
 
       {selectedSheet && (
         <SheetModal sheet={selectedSheet} onClose={() => setSelectedSheet(null)} />
