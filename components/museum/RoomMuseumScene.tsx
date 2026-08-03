@@ -7,6 +7,7 @@ import { RoomFreeRoam } from "@/components/museum/RoomFreeRoam";
 import { RoomMobileRig } from "@/components/museum/RoomMobileRig";
 import { TouchJoystick } from "@/components/museum/TouchJoystick";
 import { TouchLookArea } from "@/components/museum/TouchLookArea";
+import { RotationArrows } from "@/components/museum/RotationArrows";
 import { SheetModal } from "@/components/museum/SheetModal";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
 import { ROOM_SIZE, EYE_HEIGHT } from "@/lib/museum/roomConstants";
@@ -20,14 +21,16 @@ interface RoomMuseumSceneProps {
 /**
  * RoomMuseumScene
  * Client Component - the room-based museum's entry point. Owns
- * selectedSheet state for the click-to-view modal, in addition to
- * control-scheme detection from Stage 2/3.
+ * turnRef (shared between RotationArrows and whichever control
+ * scheme is active) in addition to movement refs and modal state
+ * from earlier stages.
  */
 export function RoomMuseumScene({ rooms }: RoomMuseumSceneProps) {
   const isTouch = useIsTouchDevice();
   const touchMoveRef = useRef({ x: 0, y: 0 });
   const touchLookRef = useRef({ x: 0, y: 0 });
   const tapRef = useRef({ x: 0, y: 0, pending: false });
+  const turnRef = useRef({ left: false, right: false });
   const [selectedSheet, setSelectedSheet] = useState<ExhibitSheet | null>(null);
   const numRooms = rooms.length;
 
@@ -42,11 +45,12 @@ export function RoomMuseumScene({ rooms }: RoomMuseumSceneProps) {
             moveRef={touchMoveRef}
             lookRef={touchLookRef}
             tapRef={tapRef}
+            turnRef={turnRef}
             numRooms={numRooms}
             onSelect={setSelectedSheet}
           />
         ) : (
-          <RoomFreeRoam numRooms={numRooms} onSelect={setSelectedSheet} />
+          <RoomFreeRoam numRooms={numRooms} onSelect={setSelectedSheet} turnRef={turnRef} />
         )}
       </Canvas>
 
@@ -56,17 +60,19 @@ export function RoomMuseumScene({ rooms }: RoomMuseumSceneProps) {
           <TouchLookArea lookRef={touchLookRef} tapRef={tapRef} />
           <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none">
             <p className="text-white/70 text-xs bg-black/50 px-3 py-1 rounded-full">
-              Drag left side to move - drag right side to look - tap a sheet to view it
+              Drag left to move - drag right or use arrows to look - tap a sheet to view it
             </p>
           </div>
         </>
       ) : (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none">
-           <p className="text-white/70 text-xs bg-black/50 px-3 py-1 rounded-full">
-            W/S to walk - A/D to strafe - Left/Right arrows or drag to look - click a sheet to view it
+          <p className="text-white/70 text-xs bg-black/50 px-3 py-1 rounded-full">
+            W/S walk - A/D strafe - arrow keys, drag, or buttons to look - click a sheet to view it
           </p>
         </div>
       )}
+
+      <RotationArrows turnRef={turnRef} />
 
       {selectedSheet && (
         <SheetModal sheet={selectedSheet} onClose={() => setSelectedSheet(null)} />

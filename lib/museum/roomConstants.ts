@@ -16,3 +16,5 @@ export const FRAME_HEIGHT = 1.7;
 
 export const WALL_MARGIN = 0.5;
 export const WALK_SPEED = 3;
+
+export const TURN_SPEED = 1.8; // radians per second, shared by keyboard, drag, and on-screen rotation controls

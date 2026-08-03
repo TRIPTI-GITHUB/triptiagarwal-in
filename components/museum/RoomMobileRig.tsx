@@ -4,6 +4,7 @@ import { useEffect, MutableRefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { moveCameraInRooms } from "@/lib/museum/roomMovement";
+import { TURN_SPEED } from "@/lib/museum/roomConstants";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
 const MOVE_SPEED = 3;
@@ -13,6 +14,7 @@ interface RoomMobileRigProps {
   moveRef: MutableRefObject<{ x: number; y: number }>;
   lookRef: MutableRefObject<{ x: number; y: number }>;
   tapRef: MutableRefObject<{ x: number; y: number; pending: boolean }>;
+  turnRef: MutableRefObject<{ left: boolean; right: boolean }>;
   numRooms: number;
   onSelect: (sheet: ExhibitSheet) => void;
 }
@@ -20,16 +22,16 @@ interface RoomMobileRigProps {
 /**
  * RoomMobileRig
  * Client Component - mobile counterpart to RoomFreeRoam. Reads
- * moveRef/lookRef every frame for movement and looking, same as
- * before. Additionally checks tapRef each frame - if TouchLookArea
- * has flagged a pending tap, casts a ray from the camera through that
- * exact screen position to find and select a sheet, then clears the
- * flag so the same tap isn't processed twice.
+ * moveRef/lookRef for joystick movement and drag-to-look, tapRef for
+ * click-to-select, and turnRef (driven by on-screen RotationArrows)
+ * as an additional way to rotate the view - useful since drag-to-look
+ * on a small screen can feel fiddly compared to a dedicated button.
  */
 export function RoomMobileRig({
   moveRef,
   lookRef,
   tapRef,
+  turnRef,
   numRooms,
   onSelect,
 }: RoomMobileRigProps) {
@@ -53,6 +55,9 @@ export function RoomMobileRig({
       look.x = 0;
       look.y = 0;
     }
+
+    if (turnRef.current.left) camera.rotation.y += TURN_SPEED * delta;
+    if (turnRef.current.right) camera.rotation.y -= TURN_SPEED * delta;
 
     const move = moveRef.current;
     moveCameraInRooms(camera, move.x, -move.y, MOVE_SPEED * delta, numRooms);

@@ -1,31 +1,32 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, MutableRefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { moveCameraInRooms } from "@/lib/museum/roomMovement";
+import { TURN_SPEED } from "@/lib/museum/roomConstants";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
 const MOVE_SPEED = 3;
-const TURN_SPEED = 1.8; // radians per second
 const LOOK_SENSITIVITY = 0.005;
 const CLICK_MOVE_THRESHOLD = 6;
 
 interface RoomFreeRoamProps {
   numRooms: number;
   onSelect: (sheet: ExhibitSheet) => void;
+  turnRef: MutableRefObject<{ left: boolean; right: boolean }>;
 }
 
 /**
  * RoomFreeRoam
  * Client Component - desktop controls for the room-based layout.
- * W/S (or Up/Down) move forward/back, A/D strafe sideways, Left/Right
- * arrow keys turn the view - and click-and-drag on the canvas also
- * rotates the view for fine adjustments. Combining keyboard turning
- * with drag-to-look means visitors aren't limited to only one way of
- * looking around.
+ * W/S move forward/back, A/D strafe sideways, Left/Right arrow keys
+ * turn, click-and-drag on the canvas also rotates the view, and
+ * turnRef (driven by on-screen RotationArrows) provides a fourth way
+ * to turn - all four combine additively, so any of them works at any
+ * time without conflicting.
  */
-export function RoomFreeRoam({ numRooms, onSelect }: RoomFreeRoamProps) {
+export function RoomFreeRoam({ numRooms, onSelect, turnRef }: RoomFreeRoamProps) {
   const { camera, gl, scene } = useThree();
 
   const keys = useRef({
@@ -170,8 +171,12 @@ export function RoomFreeRoam({ numRooms, onSelect }: RoomFreeRoamProps) {
   }, [camera, gl, scene, onSelect]);
 
   useFrame((_, delta) => {
-    if (keys.current.turnLeft) camera.rotation.y += TURN_SPEED * delta;
-    if (keys.current.turnRight) camera.rotation.y -= TURN_SPEED * delta;
+    if (keys.current.turnLeft || turnRef.current.left) {
+      camera.rotation.y += TURN_SPEED * delta;
+    }
+    if (keys.current.turnRight || turnRef.current.right) {
+      camera.rotation.y -= TURN_SPEED * delta;
+    }
 
     const moveZ = (keys.current.forward ? 1 : 0) - (keys.current.backward ? 1 : 0);
     const moveX = (keys.current.strafeRight ? 1 : 0) - (keys.current.strafeLeft ? 1 : 0);
