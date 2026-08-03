@@ -128,3 +128,35 @@ export function getDoorwayObstacles(numRooms: number): Obstacle[] {
 
   return obstacles;
 }
+
+
+
+/**
+ * groupIntoRooms
+ * Groups sheets by section_title (e.g. "Frame 1") into MuseumRoom
+ * objects, one room per section. Sheets with no section_title fall
+ * into a single default "Gallery" room, so simpler unsectioned
+ * exhibits still work as one room with no forced complexity.
+ */
+export function groupIntoRooms(sheets: ExhibitSheet[]): MuseumRoom[] {
+  const map = new Map<string, ExhibitSheet[]>();
+
+  for (const sheet of sheets) {
+    const key =
+      sheet.section_title && sheet.section_title.trim() !== ""
+        ? sheet.section_title
+        : "Gallery";
+
+    const existing = map.get(key);
+    if (existing) {
+      existing.push(sheet);
+    } else {
+      map.set(key, [sheet]);
+    }
+  }
+
+  return Array.from(map.entries()).map(([title, roomSheets]) => ({
+    title,
+    sheets: roomSheets,
+  }));
+}

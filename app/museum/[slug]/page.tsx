@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import type { Exhibit, ExhibitSheet } from "@/lib/supabase/database.types";
-import { MuseumScene } from "@/components/museum/MuseumScene";
+import { groupIntoRooms } from "@/lib/museum/layout";
+import { RoomMuseumScene } from "@/components/museum/RoomMuseumScene";
 
 interface MuseumPageProps {
   params: Promise<{ slug: string }>;
@@ -33,10 +34,11 @@ export async function generateMetadata({
 
 /**
  * MuseumPage
- * Server Component - fetches the exhibit plus every one of its
- * sheets, ordered by sheet_number, and hands them directly to
- * MuseumScene as a flat sequence for the guided Next/Previous
- * walkthrough.
+ * Server Component - fetches the exhibit and its sheets, groups them
+ * into rooms by section_title, and hands that off to RoomMuseumScene
+ * for the free-roam, click-to-view 3D experience. Any published
+ * exhibit with sheets automatically gets this same room-based museum
+ * - no per-exhibit code needed.
  */
 export default async function MuseumPage({ params }: MuseumPageProps) {
   const { slug } = await params;
@@ -68,14 +70,7 @@ export default async function MuseumPage({ params }: MuseumPageProps) {
     );
   }
 
-  return (
-    <div>
-      <div className="bg-brand-charcoal text-brand-cream text-center py-3">
-        <p className="text-sm">
-          Walking through: <span className="font-semibold">{exhibit.title}</span>
-        </p>
-      </div>
-      <MuseumScene sheets={sheets} />
-    </div>
-  );
+  const rooms = groupIntoRooms(sheets);
+
+  return <RoomMuseumScene rooms={rooms} />;
 }
