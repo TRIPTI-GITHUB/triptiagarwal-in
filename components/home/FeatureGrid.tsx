@@ -13,6 +13,7 @@ const FEATURES: Feature[] = [
     icon: "🏛️",
     title: "Digital Museum",
     description: "Interactive exhibits exploring history through curated heritage collections.",
+    href: "/museum/indias-freedom-struggle",
   },
   {
     icon: "📮",
