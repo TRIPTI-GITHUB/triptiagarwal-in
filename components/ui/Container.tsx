@@ -1,4 +1,4 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 interface ContainerProps {
   children: ReactNode;
@@ -6,14 +6,12 @@ interface ContainerProps {
 }
 
 /**
- * Container
- * Constrains content to a readable max-width and applies consistent
- * horizontal padding across breakpoints. Use this to wrap the main
- * content of every section/page.
+ * Page-width wrapper. Max width 1280px per DesignSystem.md,
+ * with responsive horizontal padding (desktop px-8, tablet px-6, mobile px-4).
  */
 export function Container({ children, className = "" }: ContainerProps) {
   return (
-    <div className={`w-full max-w-6xl mx-auto px-6 md:px-8 ${className}`}>
+    <div className={`mx-auto w-full max-w-[1280px] px-4 sm:px-6 lg:px-8 ${className}`}>
       {children}
     </div>
   );

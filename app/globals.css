@@ -1,5 +1,4 @@
 @import "tailwindcss";
-
 @theme {
   /* Brand Colors — Tripti Agarwal Heritage Lab */
   --color-brand-cream: #FAF7F2;      /* Background */
@@ -10,6 +9,20 @@
   /* Fonts */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+
+  /* --- Journey page aliases ---
+     The journey components reference these token names. Rather than rename
+     every class in those files, we alias them here to your real brand colors
+     so nothing needs to change in the component code. */
+  --color-heritage-blue: var(--color-brand-teal);
+  --color-antique-gold: var(--color-brand-gold);
+  --color-forest-green: var(--color-brand-teal);
+  --color-warm-ivory: var(--color-brand-cream);
+  --color-charcoal: var(--color-brand-charcoal);
+
+  /* Neutral additions — not brand hues, just structural UI needs */
+  --color-surface: #FFFFFF;   /* white card background, for contrast against cream page bg */
+  --color-border: #E5E7EB;    /* standard hairline border for cards */
 }
 
 body {

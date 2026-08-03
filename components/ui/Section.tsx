@@ -1,20 +1,20 @@
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
 
 interface SectionProps {
   children: ReactNode;
   className?: string;
+  /** Alternate surface background for visual rhythm between sections */
+  surface?: "ivory" | "white";
   id?: string;
 }
 
 /**
- * Section
- * Applies consistent vertical padding between page sections. Wrap each
- * distinct block of a page (hero, features, footer content, etc.) in
- * this component to keep spacing rhythm consistent site-wide.
+ * Vertical section wrapper. Section spacing 100–120px per DesignSystem.md.
  */
-export function Section({ children, className = "", id }: SectionProps) {
+export function Section({ children, className = "", surface = "ivory", id }: SectionProps) {
+  const bg = surface === "white" ? "bg-surface" : "bg-warm-ivory";
   return (
-    <section id={id} className={`py-16 md:py-24 ${className}`}>
+    <section id={id} className={`${bg} py-16 md:py-24 lg:py-28 ${className}`}>
       {children}
     </section>
   );
