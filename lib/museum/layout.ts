@@ -1,5 +1,5 @@
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
-import { ROOM_SIZE, DOOR_WIDTH, FRAME_Y, WALL_MARGIN, EYE_HEIGHT } from "@/lib/museum/roomConstants";
+import { ROOM_SIZE, DOOR_WIDTH, FRAME_Y, FRAME_WIDTH, WALL_MARGIN, EYE_HEIGHT } from "@/lib/museum/roomConstants";
 
 const DOORWAY_HALF = DOOR_WIDTH / 2;
 export interface MuseumRoom {
@@ -45,7 +45,9 @@ export function totalHallLength(numRooms: number): number {
 export function getFramePlacements(rooms: MuseumRoom[]): FramePlacement[] {
   const placements: FramePlacement[] = [];
   const half = ROOM_SIZE / 2;
-  const flank = DOOR_WIDTH / 2 + 0.9;
+  const frameHalf = FRAME_WIDTH / 2;
+  const flank = DOOR_WIDTH / 2 + frameHalf + 0.3;
+  const sideOffset = frameHalf + 0.5;
 
   rooms.forEach((room, roomIndex) => {
     const centerZ = roomCenterZ(roomIndex);
@@ -54,18 +56,14 @@ export function getFramePlacements(rooms: MuseumRoom[]): FramePlacement[] {
     const sheets = room.sheets;
 
     const slots: Omit<FramePlacement, "sheet">[] = [
-      // Entry wall (facing into the room, -Z direction)
       { x: -flank, y: FRAME_Y, z: eZ - 0.05, rotationY: Math.PI },
       { x: flank, y: FRAME_Y, z: eZ - 0.05, rotationY: Math.PI },
-      // Left wall (facing into the room, +X direction)
-      { x: -half + 0.05, y: FRAME_Y, z: centerZ + 1.6, rotationY: Math.PI / 2 },
-      { x: -half + 0.05, y: FRAME_Y, z: centerZ - 1.6, rotationY: Math.PI / 2 },
-      // Exit wall (facing into the room, +Z direction)
+      { x: -half + 0.05, y: FRAME_Y, z: centerZ + sideOffset, rotationY: Math.PI / 2 },
+      { x: -half + 0.05, y: FRAME_Y, z: centerZ - sideOffset, rotationY: Math.PI / 2 },
       { x: -flank, y: FRAME_Y, z: xZ + 0.05, rotationY: 0 },
       { x: flank, y: FRAME_Y, z: xZ + 0.05, rotationY: 0 },
-      // Right wall (facing into the room, -X direction)
-      { x: half - 0.05, y: FRAME_Y, z: centerZ - 1.6, rotationY: -Math.PI / 2 },
-      { x: half - 0.05, y: FRAME_Y, z: centerZ + 1.6, rotationY: -Math.PI / 2 },
+      { x: half - 0.05, y: FRAME_Y, z: centerZ - sideOffset, rotationY: -Math.PI / 2 },
+      { x: half - 0.05, y: FRAME_Y, z: centerZ + sideOffset, rotationY: -Math.PI / 2 },
     ];
 
     sheets.slice(0, 8).forEach((sheet, i) => {
@@ -174,7 +172,7 @@ export interface TourPath {
   navigableIndices: number[];
 }
 
-const TOUR_STANDOFF = 2.4; // how far into the room a viewer stands back from a mounted sheet
+const TOUR_STANDOFF = 3.0; // how far into the room a viewer stands back from a mounted sheet
 
 /**
  * buildTourPath

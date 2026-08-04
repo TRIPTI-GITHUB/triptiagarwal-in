@@ -32,14 +32,6 @@ export async function generateMetadata({
   };
 }
 
-/**
- * MuseumPage
- * Server Component - fetches the exhibit and its sheets, groups them
- * into rooms by section_title, and hands that off to RoomMuseumScene
- * for the free-roam, click-to-view 3D experience. Any published
- * exhibit with sheets automatically gets this same room-based museum
- * - no per-exhibit code needed.
- */
 export default async function MuseumPage({ params }: MuseumPageProps) {
   const { slug } = await params;
   const supabase = await createClient();
@@ -72,5 +64,5 @@ export default async function MuseumPage({ params }: MuseumPageProps) {
 
   const rooms = groupIntoRooms(sheets);
 
-  return <RoomMuseumScene rooms={rooms} />;
+  return <RoomMuseumScene rooms={rooms} exhibitTitle={exhibit.title} />;
 }

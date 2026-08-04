@@ -14,7 +14,10 @@ function RoomFrameArtwork({ sheet }: RoomFrameArtworkProps) {
   return (
     <mesh position={[0, 0, 0.02]} userData={{ isExhibitFrame: true, sheet: sheet }}>
       <planeGeometry args={[FRAME_WIDTH - 0.15, FRAME_HEIGHT - 0.15]} />
-      <meshStandardMaterial map={texture} />
+      {/* meshBasicMaterial is "unlit" - it always shows the texture's
+          true colors regardless of scene lighting, matching exactly
+          how the same image looks in the popup's plain <img> tag. */}
+      <meshBasicMaterial map={texture} />
     </mesh>
   );
 }
@@ -27,19 +30,17 @@ interface RoomFrameProps {
 
 /**
  * RoomFrame
- * A single mounted exhibit sheet: a gold backing panel, the real
- * sheet image, and - if the sheet has a `heading` set in Supabase -
- * a large title floating just above it. The heading is rendered as
- * part of the same rotated group as the frame itself, so it always
- * correctly faces into the room, matching whichever wall the sheet
- * is mounted on, with no extra positioning math needed here.
+ * A single mounted exhibit sheet: a dark blue backing panel (lit,
+ * so it responds naturally to room lighting like the walls do), the
+ * real sheet image (unlit, always true brightness), and - if set - a
+ * capitalized gold title close above it.
  */
 export function RoomFrame({ sheet, position, rotationY }: RoomFrameProps) {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <mesh userData={{ isExhibitFrame: true, sheet: sheet }}>
         <planeGeometry args={[FRAME_WIDTH, FRAME_HEIGHT]} />
-        <meshStandardMaterial color="#b08d57" />
+        <meshStandardMaterial color="#153A5B" />
       </mesh>
       <Suspense fallback={null}>
         <RoomFrameArtwork sheet={sheet} />
@@ -47,15 +48,18 @@ export function RoomFrame({ sheet, position, rotationY }: RoomFrameProps) {
 
       {sheet.heading && (
         <Text
-          position={[0, FRAME_HEIGHT / 2 + 0.35, 0.05]}
+          position={[0, FRAME_HEIGHT / 2 + 0.16, 0.05]}
           fontSize={0.28}
-          maxWidth={FRAME_WIDTH + 0.6}
+          letterSpacing={0.05}
+          maxWidth={FRAME_WIDTH + 0.5}
           textAlign="center"
-          color="#2D2D2D"
+          color="#C9A227"
           anchorX="center"
           anchorY="bottom"
+          outlineWidth={0.006}
+          outlineColor="#153A5B"
         >
-          {sheet.heading}
+          {sheet.heading.toUpperCase()}
         </Text>
       )}
     </group>
