@@ -172,7 +172,7 @@ export interface TourPath {
   navigableIndices: number[];
 }
 
-const TOUR_STANDOFF = 3.0; // how far into the room a viewer stands back from a mounted sheet
+const TOUR_STANDOFF = 4.0; // how far into the room a viewer stands back from a mounted sheet
 
 /**
  * buildTourPath
