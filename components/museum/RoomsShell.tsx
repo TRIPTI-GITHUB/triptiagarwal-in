@@ -16,6 +16,8 @@ interface RoomsShellProps {
   rooms: MuseumRoom[];
 }
 
+import * as THREE from "three";
+
 const WALL_COLOR = "#EAF1F8";
 const CEILING_COLOR = "#FBFDFF";
 const FLOOR_COLOR = "#5B6B7A";
@@ -28,11 +30,11 @@ function DoorWall({ z, facing }: { z: number; facing: number }) {
     <group>
       <mesh position={[-(DOOR_WIDTH / 2 + segmentWidth / 2), ROOM_HEIGHT / 2, z]} rotation={[0, facing, 0]}>
         <planeGeometry args={[segmentWidth, ROOM_HEIGHT]} />
-        <meshStandardMaterial color={WALL_COLOR} />
+        <meshStandardMaterial color={WALL_COLOR} side={THREE.DoubleSide}/>
       </mesh>
       <mesh position={[DOOR_WIDTH / 2 + segmentWidth / 2, ROOM_HEIGHT / 2, z]} rotation={[0, facing, 0]}>
         <planeGeometry args={[segmentWidth, ROOM_HEIGHT]} />
-        <meshStandardMaterial color={WALL_COLOR} />
+        <meshStandardMaterial color={WALL_COLOR} side={THREE.DoubleSide} />
       </mesh>
     </group>
   );
@@ -58,21 +60,21 @@ export function RoomsShell({ rooms }: RoomsShellProps) {
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, centerZ]}>
         <planeGeometry args={[ROOM_SIZE, depth]} />
-        <meshStandardMaterial color={FLOOR_COLOR} />
+        <meshStandardMaterial color={FLOOR_COLOR} side={THREE.DoubleSide} />
       </mesh>
 
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_HEIGHT, centerZ]}>
         <planeGeometry args={[ROOM_SIZE, depth]} />
-        <meshStandardMaterial color={CEILING_COLOR} />
+        <meshStandardMaterial color={CEILING_COLOR} side={THREE.DoubleSide} />
       </mesh>
 
       <mesh position={[-half, ROOM_HEIGHT / 2, centerZ]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[depth, ROOM_HEIGHT]} />
-        <meshStandardMaterial color={WALL_COLOR} />
+        <meshStandardMaterial color={WALL_COLOR} side={THREE.DoubleSide}/>
       </mesh>
       <mesh position={[half, ROOM_HEIGHT / 2, centerZ]} rotation={[0, -Math.PI / 2, 0]}>
         <planeGeometry args={[depth, ROOM_HEIGHT]} />
-        <meshStandardMaterial color={WALL_COLOR} />
+        <meshStandardMaterial color={WALL_COLOR} side={THREE.DoubleSide}/>
       </mesh>
 
       {rooms.map((_, i) => (

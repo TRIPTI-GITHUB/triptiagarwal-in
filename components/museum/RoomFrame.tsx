@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { useTexture, Text } from "@react-three/drei";
 import { FRAME_WIDTH, FRAME_HEIGHT } from "@/lib/museum/roomConstants";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
+import * as THREE from "three";
 
 interface RoomFrameArtworkProps {
   sheet: ExhibitSheet;
@@ -40,7 +41,7 @@ export function RoomFrame({ sheet, position, rotationY }: RoomFrameProps) {
     <group position={position} rotation={[0, rotationY, 0]}>
       <mesh userData={{ isExhibitFrame: true, sheet: sheet }}>
         <planeGeometry args={[FRAME_WIDTH, FRAME_HEIGHT]} />
-        <meshStandardMaterial color="#153A5B" />
+        <meshStandardMaterial color="#153A5B" side={THREE.DoubleSide}/>
       </mesh>
       <Suspense fallback={null}>
         <RoomFrameArtwork sheet={sheet} />
