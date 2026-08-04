@@ -1,5 +1,5 @@
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
-import { ROOM_SIZE, DOOR_WIDTH, FRAME_Y, WALL_MARGIN } from "@/lib/museum/roomConstants";
+import { ROOM_SIZE, DOOR_WIDTH, FRAME_Y, WALL_MARGIN, EYE_HEIGHT } from "@/lib/museum/roomConstants";
 
 const DOORWAY_HALF = DOOR_WIDTH / 2;
 export interface MuseumRoom {
@@ -159,4 +159,69 @@ export function groupIntoRooms(sheets: ExhibitSheet[]): MuseumRoom[] {
     title,
     sheets: roomSheets,
   }));
+}
+
+export interface TourStop {
+  type: "entrance" | "doorway" | "sheet";
+  position: [number, number, number];
+  lookAt: [number, number, number];
+}
+
+export interface TourPath {
+  stops: TourStop[];
+  // navigableIndices[0] = the entrance's position within `stops`.
+  // navigableIndices[i + 1] = sheet i's position within `stops`.
+  navigableIndices: number[];
+}
+
+const TOUR_STANDOFF = 2.4; // how far into the room a viewer stands back from a mounted sheet
+
+/**
+ * buildTourPath
+ * Builds the full ordered walking path for guided tour mode: a
+ * viewing spot in front of every sheet (derived from its wall-mount
+ * position and facing angle, moved inward toward room center), plus
+ * a hidden waypoint centered in every doorway the tour must cross.
+ * TourGuide walks through every stop in sequence, so a straight-line
+ * shortcut through a wall never happens - the doorway stops guarantee
+ * the path always threads through the actual gaps.
+ */
+export function buildTourPath(rooms: MuseumRoom[]): TourPath {
+  const placements = getFramePlacements(rooms);
+  const stops: TourStop[] = [];
+  const navigableIndices: number[] = [];
+
+  stops.push({
+    type: "entrance",
+    position: [0, EYE_HEIGHT, entryWallZ(0) + TOUR_STANDOFF],
+    lookAt: [0, EYE_HEIGHT, roomCenterZ(0)],
+  });
+  navigableIndices.push(stops.length - 1);
+
+  let placementIndex = 0;
+  rooms.forEach((room, roomIndex) => {
+    stops.push({
+      type: "doorway",
+      position: [0, EYE_HEIGHT, entryWallZ(roomIndex)],
+      lookAt: [0, EYE_HEIGHT, roomCenterZ(roomIndex)],
+    });
+
+    const count = Math.min(room.sheets.length, 8);
+    for (let i = 0; i < count; i++) {
+      const p = placements[placementIndex];
+      placementIndex++;
+
+      const normalX = Math.sin(p.rotationY);
+      const normalZ = Math.cos(p.rotationY);
+
+      stops.push({
+        type: "sheet",
+        position: [p.x + normalX * TOUR_STANDOFF, EYE_HEIGHT, p.z + normalZ * TOUR_STANDOFF],
+        lookAt: [p.x, FRAME_Y, p.z],
+      });
+      navigableIndices.push(stops.length - 1);
+    }
+  });
+
+  return { stops, navigableIndices };
 }
