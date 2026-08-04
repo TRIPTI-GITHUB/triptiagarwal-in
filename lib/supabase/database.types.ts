@@ -55,6 +55,7 @@ export interface ExhibitSheet {
   image_url: string;
   caption: string | null;
   section_title: string | null;
+  heading: string | null;
   created_at: string;
   updated_at: string;
 }

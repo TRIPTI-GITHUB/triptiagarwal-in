@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense } from "react";
-import { useTexture } from "@react-three/drei";
+import { useTexture, Text } from "@react-three/drei";
 import { FRAME_WIDTH, FRAME_HEIGHT } from "@/lib/museum/roomConstants";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
@@ -27,12 +27,12 @@ interface RoomFrameProps {
 
 /**
  * RoomFrame
- * A single mounted exhibit sheet. Both the gold backing panel and the
- * artwork mesh carry userData.isExhibitFrame + the sheet record - this
- * is what the click/tap-to-select raycasting in RoomFreeRoam and
- * RoomMobileRig reads to identify which sheet was selected, and
- * tagging the backing panel too means a click still works even before
- * the image texture has finished loading.
+ * A single mounted exhibit sheet: a gold backing panel, the real
+ * sheet image, and - if the sheet has a `heading` set in Supabase -
+ * a large title floating just above it. The heading is rendered as
+ * part of the same rotated group as the frame itself, so it always
+ * correctly faces into the room, matching whichever wall the sheet
+ * is mounted on, with no extra positioning math needed here.
  */
 export function RoomFrame({ sheet, position, rotationY }: RoomFrameProps) {
   return (
@@ -44,6 +44,20 @@ export function RoomFrame({ sheet, position, rotationY }: RoomFrameProps) {
       <Suspense fallback={null}>
         <RoomFrameArtwork sheet={sheet} />
       </Suspense>
+
+      {sheet.heading && (
+        <Text
+          position={[0, FRAME_HEIGHT / 2 + 0.35, 0.05]}
+          fontSize={0.28}
+          maxWidth={FRAME_WIDTH + 0.6}
+          textAlign="center"
+          color="#2D2D2D"
+          anchorX="center"
+          anchorY="bottom"
+        >
+          {sheet.heading}
+        </Text>
+      )}
     </group>
   );
 }
