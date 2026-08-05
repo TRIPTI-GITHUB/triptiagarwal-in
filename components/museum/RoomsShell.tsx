@@ -62,9 +62,11 @@ function Pillar({ x, z }: { x: number; z: number }) {
 
 /**
  * RoomsShell
- * Renders the full gallery hall shell - the entrance foyer (pillars,
- * welcome mat, and two flanking posters on the side walls) plus every
- * room's floor, ceiling, walls, and mounted sheets.
+ * Renders the full gallery hall shell: an entrance facade wall (with
+ * a doorway gap, flanked by two welcome/nameplate posters) at the
+ * very front of the foyer, pillars and a welcome mat further in near
+ * Room 1's doorway, the two exhibit-specific posters from Step A, and
+ * every room's floor, ceiling, walls, and mounted sheets.
  */
 export function RoomsShell({ rooms, exhibitTitle, exhibitTagline }: RoomsShellProps) {
   const numRooms = rooms.length;
@@ -78,6 +80,7 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline }: RoomsShellPr
   const matDepth = 2.5;
   const matZ = entryWallZ(0) + matDepth / 2;
   const posterZ = entryWallZ(0) + FOYER_DEPTH / 2;
+  const frontPosterFlank = DOOR_WIDTH / 2 + 1.3 + 0.3;
 
   return (
     <group>
@@ -105,6 +108,23 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline }: RoomsShellPr
         <meshStandardMaterial color={WALL_COLOR} side={THREE.DoubleSide} />
       </mesh>
 
+      {/* Entrance facade - the outermost wall, with a doorway gap
+          flanked by two welcome posters */}
+      <DoorWall z={frontZ} facing={Math.PI} />
+
+      <EntrancePoster
+        position={[-frontPosterFlank, ROOM_HEIGHT / 2 - 0.1, frontZ - 0.05]}
+        rotationY={Math.PI}
+        eyebrow="Digital Museum"
+        lines={["Tripti Agarwal", "Heritage Lab"]}
+      />
+      <EntrancePoster
+        position={[frontPosterFlank, ROOM_HEIGHT / 2 - 0.1, frontZ - 0.05]}
+        rotationY={Math.PI}
+        eyebrow="Welcome"
+        lines={["Every Collectible", "Tells a Story"]}
+      />
+
       <Pillar x={-(DOOR_WIDTH / 2 + 0.6)} z={entryWallZ(0) + 1} />
       <Pillar x={DOOR_WIDTH / 2 + 0.6} z={entryWallZ(0) + 1} />
 
@@ -130,6 +150,14 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline }: RoomsShellPr
         intensity={1.3}
         color="#ffdca8"
         distance={8}
+        decay={1.5}
+      />
+
+      <pointLight
+        position={[0, ROOM_HEIGHT - 0.6, frontZ - 1]}
+        intensity={1}
+        color="#ffffff"
+        distance={7}
         decay={1.5}
       />
 
