@@ -13,20 +13,20 @@ const CLICK_MOVE_THRESHOLD = 6;
 
 interface RoomFreeRoamProps {
   numRooms: number;
-  onSelect: (sheet: ExhibitSheet) => void;
+  onSelectSheet: (sheet: ExhibitSheet) => void;
+  onSelectMode: (mode: "tour" | "free") => void;
   turnRef: MutableRefObject<{ left: boolean; right: boolean }>;
 }
 
 /**
  * RoomFreeRoam
  * Client Component - desktop controls for the room-based layout.
- * W/S move forward/back, A/D strafe sideways, Left/Right arrow keys
- * turn, click-and-drag on the canvas also rotates the view, and
- * turnRef (driven by on-screen RotationArrows) provides a fourth way
- * to turn - all four combine additively, so any of them works at any
- * time without conflicting.
+ * A click that isn't a drag raycasts from the exact clicked point and
+ * checks the closest hit: userData.isExhibitFrame selects a sheet,
+ * userData.isModeOption (from ModeChoicePoster) selects a mode -
+ * both handled by the same click-vs-drag detection.
  */
-export function RoomFreeRoam({ numRooms, onSelect, turnRef }: RoomFreeRoamProps) {
+export function RoomFreeRoam({ numRooms, onSelectSheet, onSelectMode, turnRef }: RoomFreeRoamProps) {
   const { camera, gl, scene } = useThree();
 
   const keys = useRef({
@@ -154,8 +154,12 @@ export function RoomFreeRoam({ numRooms, onSelect, turnRef }: RoomFreeRoamProps)
       const hits = raycaster.current.intersectObjects(scene.children, true);
       const closest = hits[0];
 
-      if (closest && closest.object.userData && closest.object.userData.isExhibitFrame) {
-        onSelect(closest.object.userData.sheet as ExhibitSheet);
+      if (!closest || !closest.object.userData) return;
+
+      if (closest.object.userData.isExhibitFrame) {
+        onSelectSheet(closest.object.userData.sheet as ExhibitSheet);
+      } else if (closest.object.userData.isModeOption) {
+        onSelectMode(closest.object.userData.mode as "tour" | "free");
       }
     }
 
@@ -168,7 +172,7 @@ export function RoomFreeRoam({ numRooms, onSelect, turnRef }: RoomFreeRoamProps)
       window.removeEventListener("pointermove", handlePointerMove);
       window.removeEventListener("pointerup", handlePointerUp);
     };
-  }, [camera, gl, scene, onSelect]);
+  }, [camera, gl, scene, onSelectSheet, onSelectMode]);
 
   useFrame((_, delta) => {
     if (keys.current.turnLeft || turnRef.current.left) {

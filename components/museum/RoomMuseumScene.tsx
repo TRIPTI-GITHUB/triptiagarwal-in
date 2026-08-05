@@ -30,7 +30,9 @@ interface RoomMuseumSceneProps {
  * RoomMuseumScene
  * Client Component - the room-based museum's entry point. Starts
  * with a full-screen WelcomeOverlay covering the entrance foyer;
- * dismissing it reveals the museum, already loaded behind it.
+ * dismissing it reveals the museum, already loaded behind it. Mode
+ * can be set either via the top-right toggle or by clicking the
+ * ModeChoicePoster in the foyer (handleModeSelect).
  */
 export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline }: RoomMuseumSceneProps) {
   const isTouch = useIsTouchDevice();
@@ -66,6 +68,15 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline }: RoomMus
       if (!prev) setNavIndex(-1);
       return !prev;
     });
+  }
+
+  function handleModeSelect(mode: "tour" | "free") {
+    if (mode === "tour") {
+      setTourMode(true);
+      setNavIndex(-1);
+    } else {
+      setTourMode(false);
+    }
   }
 
   function goNext() {
@@ -108,10 +119,16 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline }: RoomMus
             tapRef={tapRef}
             turnRef={turnRef}
             numRooms={numRooms}
-            onSelect={setSelectedSheet}
+            onSelectSheet={setSelectedSheet}
+            onSelectMode={handleModeSelect}
           />
         ) : (
-          <RoomFreeRoam numRooms={numRooms} onSelect={setSelectedSheet} turnRef={turnRef} />
+          <RoomFreeRoam
+            numRooms={numRooms}
+            onSelectSheet={setSelectedSheet}
+            onSelectMode={handleModeSelect}
+            turnRef={turnRef}
+          />
         )}
       </Canvas>
 

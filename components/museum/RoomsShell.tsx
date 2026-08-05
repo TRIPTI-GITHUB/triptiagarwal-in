@@ -4,6 +4,7 @@ import * as THREE from "three";
 import { Text } from "@react-three/drei";
 import { RoomFrame } from "@/components/museum/RoomFrame";
 import { EntrancePoster } from "@/components/museum/EntrancePoster";
+import { ModeChoicePoster } from "@/components/museum/ModeChoicePoster";
 import { ROOM_SIZE, ROOM_HEIGHT, DOOR_WIDTH, FOYER_DEPTH } from "@/lib/museum/roomConstants";
 import {
   type MuseumRoom,
@@ -79,7 +80,8 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline }: RoomsShellPr
   const placements = getFramePlacements(rooms);
   const matDepth = 2.5;
   const matZ = entryWallZ(0) + matDepth / 2;
-  const posterZ = entryWallZ(0) + FOYER_DEPTH / 2;
+  const taglinePosterZ = entryWallZ(0) + 3.5;
+  const modePosterZ = entryWallZ(0) + 9;
   const frontPosterFlank = DOOR_WIDTH / 2 + 1.3 + 0.3;
 
   return (
@@ -130,7 +132,7 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline }: RoomsShellPr
 
       {exhibitTitle && (
         <EntrancePoster
-          position={[-half + 0.05, ROOM_HEIGHT / 2 - 0.1, posterZ]}
+          position={[-half + 0.05, ROOM_HEIGHT / 2 - 0.1, taglinePosterZ]}
           rotationY={Math.PI / 2}
           eyebrow="Tripti Agarwal Heritage Lab"
           lines={["The Story Of", exhibitTitle]}
@@ -139,11 +141,16 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline }: RoomsShellPr
 
       {exhibitTagline && (
         <EntrancePoster
-          position={[half - 0.05, ROOM_HEIGHT / 2 - 0.1, posterZ]}
+          position={[half - 0.05, ROOM_HEIGHT / 2 - 0.1, taglinePosterZ]}
           rotationY={-Math.PI / 2}
           lines={[exhibitTagline]}
         />
       )}
+
+      <ModeChoicePoster
+        position={[half - 0.05, ROOM_HEIGHT / 2, modePosterZ]}
+        rotationY={-Math.PI / 2}
+      />
 
       <pointLight
         position={[0, ROOM_HEIGHT - 0.6, entryWallZ(0) + 1.2]}

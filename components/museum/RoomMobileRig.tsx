@@ -16,16 +16,15 @@ interface RoomMobileRigProps {
   tapRef: MutableRefObject<{ x: number; y: number; pending: boolean }>;
   turnRef: MutableRefObject<{ left: boolean; right: boolean }>;
   numRooms: number;
-  onSelect: (sheet: ExhibitSheet) => void;
+  onSelectSheet: (sheet: ExhibitSheet) => void;
+  onSelectMode: (mode: "tour" | "free") => void;
 }
 
 /**
  * RoomMobileRig
- * Client Component - mobile counterpart to RoomFreeRoam. Reads
- * moveRef/lookRef for joystick movement and drag-to-look, tapRef for
- * click-to-select, and turnRef (driven by on-screen RotationArrows)
- * as an additional way to rotate the view - useful since drag-to-look
- * on a small screen can feel fiddly compared to a dedicated button.
+ * Client Component - mobile counterpart to RoomFreeRoam. A pending
+ * tap (from TouchLookArea) is raycast the same way: checks for
+ * isExhibitFrame (sheet selection) or isModeOption (mode selection).
  */
 export function RoomMobileRig({
   moveRef,
@@ -33,7 +32,8 @@ export function RoomMobileRig({
   tapRef,
   turnRef,
   numRooms,
-  onSelect,
+  onSelectSheet,
+  onSelectMode,
 }: RoomMobileRigProps) {
   const { camera, gl, scene } = useThree();
   const raycaster = new THREE.Raycaster();
@@ -71,8 +71,12 @@ export function RoomMobileRig({
       const hits = raycaster.intersectObjects(scene.children, true);
       const closest = hits[0];
 
-      if (closest && closest.object.userData && closest.object.userData.isExhibitFrame) {
-        onSelect(closest.object.userData.sheet as ExhibitSheet);
+      if (closest && closest.object.userData) {
+        if (closest.object.userData.isExhibitFrame) {
+          onSelectSheet(closest.object.userData.sheet as ExhibitSheet);
+        } else if (closest.object.userData.isModeOption) {
+          onSelectMode(closest.object.userData.mode as "tour" | "free");
+        }
       }
 
       tapRef.current.pending = false;
