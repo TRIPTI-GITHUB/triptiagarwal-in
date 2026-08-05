@@ -13,35 +13,36 @@ import { Minimap } from "@/components/museum/Minimap";
 import { TourGuide } from "@/components/museum/TourGuide";
 import { TourControls } from "@/components/museum/TourControls";
 import { TourArrowNav } from "@/components/museum/TourArrowNav";
+import { WelcomeOverlay } from "@/components/museum/WelcomeOverlay";
 import { SheetModal } from "@/components/museum/SheetModal";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
-import { ROOM_SIZE, EYE_HEIGHT, ROOM_HEIGHT } from "@/lib/museum/roomConstants";
-import { buildTourPath, roomCenterZ, type MuseumRoom } from "@/lib/museum/layout";
+import { ROOM_HEIGHT, EYE_HEIGHT } from "@/lib/museum/roomConstants";
+import { buildTourPath, roomCenterZ, foyerFrontZ, type MuseumRoom } from "@/lib/museum/layout";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
 interface RoomMuseumSceneProps {
   rooms: MuseumRoom[];
   exhibitTitle?: string;
+  exhibitTagline?: string;
 }
 
 /**
  * RoomMuseumScene
- * Client Component - the room-based museum's entry point. Renders as
- * a fixed full-viewport overlay (covering the site header/footer)
- * rather than a normal in-page block, so the experience always fills
- * exactly one screen with no scrolling, regardless of page chrome
- * above it.
+ * Client Component - the room-based museum's entry point. Starts
+ * with a full-screen WelcomeOverlay covering the entrance foyer;
+ * dismissing it reveals the museum, already loaded behind it.
  */
-export function RoomMuseumScene({ rooms, exhibitTitle }: RoomMuseumSceneProps) {
+export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline }: RoomMuseumSceneProps) {
   const isTouch = useIsTouchDevice();
   const touchMoveRef = useRef({ x: 0, y: 0 });
   const touchLookRef = useRef({ x: 0, y: 0 });
   const tapRef = useRef({ x: 0, y: 0, pending: false });
   const turnRef = useRef({ left: false, right: false });
-  const poseRef = useRef<MinimapPose>({ x: 0, z: ROOM_SIZE, facingX: 0, facingZ: -1 });
+  const poseRef = useRef<MinimapPose>({ x: 0, z: foyerFrontZ(), facingX: 0, facingZ: -1 });
   const [selectedSheet, setSelectedSheet] = useState<ExhibitSheet | null>(null);
   const [tourMode, setTourMode] = useState(false);
   const [navIndex, setNavIndex] = useState(-1);
+  const [entered, setEntered] = useState(false);
   const numRooms = rooms.length;
 
   useEffect(() => {
@@ -60,16 +61,6 @@ export function RoomMuseumScene({ rooms, exhibitTitle }: RoomMuseumSceneProps) {
   const totalSheets = flatSheets.length;
   const targetStopIndex = tourPath.navigableIndices[navIndex + 1] ?? tourPath.navigableIndices[0];
 
-  const currentLabel =
-    navIndex === -1
-      ? "Entrance"
-      : "Sheet " +
-        flatSheets[navIndex].sheet.sheet_number +
-        " of " +
-        totalSheets +
-        " - " +
-        flatSheets[navIndex].roomTitle;
-
   function toggleMode() {
     setTourMode((prev) => {
       if (!prev) setNavIndex(-1);
@@ -87,20 +78,21 @@ export function RoomMuseumScene({ rooms, exhibitTitle }: RoomMuseumSceneProps) {
 
   return (
     <div className="fixed inset-0 z-[60] bg-black">
-      <Canvas camera={{ position: [0, EYE_HEIGHT, ROOM_SIZE], fov: 60 }}>
-        <fog attach="fog" args={["#3a4552", 7, 28]} />
-        <ambientLight intensity={0.65} color="#ffffff" />
+      <Canvas camera={{ position: [0, EYE_HEIGHT, foyerFrontZ() - 1.5], fov: 60 }}>
+        <fog attach="fog" args={["#3a4552", 9, 32]} />
+        <hemisphereLight args={["#ffffff", "#8892a0", 0.55]} />
+        <ambientLight intensity={0.55} color="#ffffff" />
         {rooms.map((_, i) => (
           <pointLight
             key={"room-light-" + i}
             position={[0, ROOM_HEIGHT - 0.4, roomCenterZ(i)]}
-            intensity={1}
+            intensity={1.1}
             color="#ffffff"
-            distance={10}
-            decay={2}
+            distance={15}
+            decay={1.5}
           />
         ))}
-        <RoomsShell rooms={rooms} />
+        <RoomsShell rooms={rooms} exhibitTitle={exhibitTitle} exhibitTagline={exhibitTagline} />
         <MinimapTracker poseRef={poseRef} />
 
         {tourMode ? (
@@ -153,7 +145,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle }: RoomMuseumSceneProps) {
 
       {!tourMode && <RotationArrows turnRef={turnRef} />}
 
-      <TourControls tourMode={tourMode} onToggleMode={toggleMode} currentLabel={currentLabel} />
+      <TourControls tourMode={tourMode} onToggleMode={toggleMode} />
 
       {tourMode && (
         <TourArrowNav
@@ -165,6 +157,12 @@ export function RoomMuseumScene({ rooms, exhibitTitle }: RoomMuseumSceneProps) {
       )}
 
       <Minimap numRooms={numRooms} poseRef={poseRef} />
+
+      <WelcomeOverlay
+        title={exhibitTitle ?? "The Gallery"}
+        visible={!entered}
+        onEnter={() => setEntered(true)}
+      />
 
       {selectedSheet && (
         <SheetModal sheet={selectedSheet} onClose={() => setSelectedSheet(null)} />

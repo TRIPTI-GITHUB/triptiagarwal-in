@@ -29,19 +29,17 @@ interface RoomFrameProps {
 
 /**
  * RoomFrame
- * A single mounted exhibit sheet, built as three stacked layers to
- * read as a genuine picture frame: a thick dark brown outer border,
- * a thin antique gold inner trim line, and the sheet image itself on
- * top (unlit, so it always shows true brightness). The heading, if
- * set, floats above in Playfair Display - matching the site's own
- * heading typeface for visual consistency.
+ * A single mounted exhibit sheet, built as three stacked layers: a
+ * rich mahogany outer border (lightened from an earlier near-black
+ * shade so it reads as brown even in dimmer corners), a thin gold
+ * inner trim, and the sheet image (unlit, always true brightness).
  */
 export function RoomFrame({ sheet, position, rotationY }: RoomFrameProps) {
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <mesh userData={{ isExhibitFrame: true, sheet: sheet }}>
         <planeGeometry args={[FRAME_WIDTH, FRAME_HEIGHT]} />
-        <meshStandardMaterial color="#3E2723" />
+        <meshStandardMaterial color="#5C3A21" />
       </mesh>
 
       <mesh position={[0, 0, 0.015]}>

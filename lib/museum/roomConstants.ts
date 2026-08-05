@@ -9,4 +9,5 @@ export const FRAME_HEIGHT = 2.7;
 
 export const WALL_MARGIN = 0.5;
 export const WALK_SPEED = 3;
+export const FOYER_DEPTH = 6; // extra approach space in front of Room 1, for the entrance
 export const TURN_SPEED = 1.8;

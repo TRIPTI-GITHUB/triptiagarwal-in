@@ -1,6 +1,5 @@
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
-import { ROOM_SIZE, DOOR_WIDTH, FRAME_Y, FRAME_WIDTH, WALL_MARGIN, EYE_HEIGHT } from "@/lib/museum/roomConstants";
-
+import { ROOM_SIZE, DOOR_WIDTH, FRAME_Y, FRAME_WIDTH, WALL_MARGIN, EYE_HEIGHT, FOYER_DEPTH } from "@/lib/museum/roomConstants";
 const DOORWAY_HALF = DOOR_WIDTH / 2;
 export interface MuseumRoom {
   title: string;
@@ -28,6 +27,11 @@ export function entryWallZ(roomIndex: number): number {
 /** Z of a room's exit wall (the wall leading to the next room, or the far end). */
 export function exitWallZ(roomIndex: number): number {
   return roomCenterZ(roomIndex) - ROOM_SIZE / 2;
+}
+
+/** Z of the outer edge of the entrance foyer, in front of Room 1's doorway. */
+export function foyerFrontZ(): number {
+  return entryWallZ(0) + FOYER_DEPTH;
 }
 
 /** Total length of the whole hall, given how many rooms it has. */
@@ -93,11 +97,10 @@ export function getOuterBounds(numRooms: number) {
   return {
     minX: -half + WALL_MARGIN,
     maxX: half - WALL_MARGIN,
-    maxZ: entryWallZ(0) - WALL_MARGIN,
+    maxZ: foyerFrontZ() - WALL_MARGIN,
     minZ: exitWallZ(numRooms - 1) + WALL_MARGIN,
   };
 }
-
 /**
  * getDoorwayObstacles
  * Solid collision rectangles for the two wall segments flanking each
@@ -198,11 +201,11 @@ export function buildTourPath(rooms: MuseumRoom[]): TourPath {
 
   let placementIndex = 0;
   rooms.forEach((room, roomIndex) => {
-    stops.push({
-      type: "doorway",
-      position: [0, EYE_HEIGHT, entryWallZ(roomIndex)],
-      lookAt: [0, EYE_HEIGHT, roomCenterZ(roomIndex)],
-    });
+   stops.push({
+    type: "entrance",
+    position: [0, EYE_HEIGHT, foyerFrontZ() - 1.5],
+    lookAt: [0, EYE_HEIGHT, entryWallZ(0)],
+  });
 
     const count = Math.min(room.sheets.length, 8);
     for (let i = 0; i < count; i++) {

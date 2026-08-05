@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Exhibit, ExhibitSheet } from "@/lib/supabase/database.types";
+import type { Exhibit, ExhibitSheet, ExhibitType } from "@/lib/supabase/database.types";
+
+const TRIBUTE_TAGLINES: Record<ExhibitType, string> = {
+  stamps: "A Philatelic Tribute",
+  coins: "A Numismatic Tribute",
+  mixed: "A Heritage Tribute",
+};
+
 import { groupIntoRooms } from "@/lib/museum/layout";
 import { RoomMuseumScene } from "@/components/museum/RoomMuseumScene";
 
@@ -64,5 +71,12 @@ export default async function MuseumPage({ params }: MuseumPageProps) {
 
   const rooms = groupIntoRooms(sheets);
 
-  return <RoomMuseumScene rooms={rooms} exhibitTitle={exhibit.title} />;
+  return (
+    <RoomMuseumScene
+      rooms={rooms}
+      exhibitTitle={exhibit.title}
+      exhibitTagline={TRIBUTE_TAGLINES[exhibit.type]}
+    />
+  );
+  
 }
