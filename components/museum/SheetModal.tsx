@@ -6,6 +6,7 @@ import type { ExhibitSheet } from "@/lib/supabase/database.types";
 interface SheetModalProps {
   sheet: ExhibitSheet;
   onClose: () => void;
+  label?: string;
 }
 
 const MIN_SCALE = 1;
@@ -19,7 +20,7 @@ const SCALE_STEP = 0.5;
  * library, for the same reliability reasons the flipbook library
  * was replaced earlier in this project.
  */
-export function SheetModal({ sheet, onClose }: SheetModalProps) {
+export function SheetModal({ sheet, onClose, label }: SheetModalProps) {
   const [scale, setScale] = useState(MIN_SCALE);
 
   function zoomIn() {
@@ -68,9 +69,16 @@ export function SheetModal({ sheet, onClose }: SheetModalProps) {
         </button>
       </div>
 
-      <p className="text-white/70 text-sm mt-3">
-        Sheet {sheet.sheet_number}
-        {sheet.section_title ? " - " + sheet.section_title : ""}
+      {sheet.heading && (
+        <p className="text-white text-lg font-semibold mt-4 text-center">
+          {sheet.heading}
+        </p>
+      )}
+      <p className="text-white/70 text-sm mt-1">
+        {label ??
+          "Sheet " +
+            sheet.sheet_number +
+            (sheet.section_title ? " - " + sheet.section_title : "")}
       </p>
     </div>
   );

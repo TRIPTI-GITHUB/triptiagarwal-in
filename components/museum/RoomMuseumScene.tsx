@@ -17,7 +17,7 @@ import { WelcomeOverlay } from "@/components/museum/WelcomeOverlay";
 import { SheetModal } from "@/components/museum/SheetModal";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
 import { ROOM_HEIGHT, EYE_HEIGHT } from "@/lib/museum/roomConstants";
-import { buildTourPath, roomCenterZ, foyerFrontZ, type MuseumRoom } from "@/lib/museum/layout";
+import { buildTourPath, buildSheetLabels, roomCenterZ, foyerFrontZ, type MuseumRoom } from "@/lib/museum/layout";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
 interface RoomMuseumSceneProps {
@@ -56,6 +56,8 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline }: RoomMus
   }, []);
 
   const tourPath = useMemo(() => buildTourPath(rooms), [rooms]);
+  const sheetLabels = useMemo(() => buildSheetLabels(rooms), [rooms]);
+
   const flatSheets = useMemo(
     () => rooms.flatMap((room) => room.sheets.map((sheet) => ({ sheet, roomTitle: room.title }))),
     [rooms]
@@ -182,7 +184,11 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline }: RoomMus
       />
 
       {selectedSheet && (
-        <SheetModal sheet={selectedSheet} onClose={() => setSelectedSheet(null)} />
+        <SheetModal
+          sheet={selectedSheet}
+          onClose={() => setSelectedSheet(null)}
+          label={sheetLabels.get(selectedSheet.id)}
+        />
       )}
     </div>
   );

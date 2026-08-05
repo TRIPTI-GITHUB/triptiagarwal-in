@@ -226,3 +226,23 @@ export function buildTourPath(rooms: MuseumRoom[]): TourPath {
 
   return { stops, navigableIndices };
 }
+
+/**
+ * buildSheetLabels
+ * Maps each sheet's id to a human-readable "Sheet X of Y - RoomTitle"
+ * label, where X/Y are the sheet's position WITHIN its room (1-8),
+ * not its global sheet_number (1-24) - avoids the confusing "Sheet 9
+ * of Frame 2" that global numbering would otherwise produce.
+ */
+export function buildSheetLabels(rooms: MuseumRoom[]): Map<string, string> {
+  const labels = new Map<string, string>();
+
+  rooms.forEach((room) => {
+    const total = room.sheets.length;
+    room.sheets.forEach((sheet, i) => {
+      labels.set(sheet.id, "Sheet " + (i + 1) + " of " + total + " - " + room.title);
+    });
+  });
+
+  return labels;
+}
