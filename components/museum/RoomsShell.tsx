@@ -9,6 +9,7 @@ import { BackWallWelcomePoster } from "@/components/museum/BackWallWelcomePoster
 import type { Profile } from "@/lib/supabase/database.types";
 import { LobbyBench } from "@/components/museum/LobbyBench";
 import { LobbySideTable } from "@/components/museum/LobbySideTable";
+import { ReceptionCounter } from "@/components/museum/ReceptionCounter";
 import { ROOM_SIZE, ROOM_HEIGHT, DOOR_WIDTH, FOYER_DEPTH } from "@/lib/museum/roomConstants";
 import {
   type MuseumRoom,
@@ -89,6 +90,7 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile }: Roo
   const modePosterZ = entryWallZ(0) + 9;
   const welcomePosterZ = entryWallZ(0) + 9;
   const lobbySeatingZ = entryWallZ(0) + 6.25;
+  const receptionZ = frontZ - 2.2;
   const frontPosterFlank = DOOR_WIDTH / 2 + 1.3 + 0.3;
 
   return (
@@ -167,7 +169,8 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile }: Roo
       <LobbyBench position={[-3.2, 0, lobbySeatingZ]} rotationY={Math.PI / 2} />
       <LobbyBench position={[3.2, 0, lobbySeatingZ]} rotationY={-Math.PI / 2} />
       <LobbySideTable position={[0, 0, lobbySeatingZ]} />
-      
+      <ReceptionCounter position={[-3.5, 0, receptionZ]} rotationY={Math.PI} />
+
       <pointLight
         position={[0, ROOM_HEIGHT - 0.6, entryWallZ(0) + 1.2]}
         intensity={1.3}
