@@ -18,12 +18,13 @@ import { SheetModal } from "@/components/museum/SheetModal";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
 import { ROOM_HEIGHT, EYE_HEIGHT } from "@/lib/museum/roomConstants";
 import { buildTourPath, buildSheetLabels, roomCenterZ, foyerFrontZ, type MuseumRoom } from "@/lib/museum/layout";
-import type { ExhibitSheet } from "@/lib/supabase/database.types";
+import type { ExhibitSheet, Profile } from "@/lib/supabase/database.types";
 
 interface RoomMuseumSceneProps {
   rooms: MuseumRoom[];
   exhibitTitle?: string;
   exhibitTagline?: string;
+  profile?: Profile | null;
 }
 
 /**
@@ -34,7 +35,7 @@ interface RoomMuseumSceneProps {
  * can be set either via the top-right toggle or by clicking the
  * ModeChoicePoster in the foyer (handleModeSelect).
  */
-export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline }: RoomMuseumSceneProps) {
+export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }: RoomMuseumSceneProps) {
   const isTouch = useIsTouchDevice();
   const touchMoveRef = useRef({ x: 0, y: 0 });
   const touchLookRef = useRef({ x: 0, y: 0 });
@@ -105,7 +106,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline }: RoomMus
             decay={1.5}
           />
         ))}
-        <RoomsShell rooms={rooms} exhibitTitle={exhibitTitle} exhibitTagline={exhibitTagline} />
+        <RoomsShell rooms={rooms} exhibitTitle={exhibitTitle} exhibitTagline={exhibitTagline} profile={profile} />
         <MinimapTracker poseRef={poseRef} />
 
         {tourMode ? (

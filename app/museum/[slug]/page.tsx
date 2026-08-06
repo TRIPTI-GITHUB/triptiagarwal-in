@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import type { Exhibit, ExhibitSheet, ExhibitType } from "@/lib/supabase/database.types";
+import type { Exhibit, ExhibitSheet, ExhibitType, Profile } from "@/lib/supabase/database.types";
 
 const TRIBUTE_TAGLINES: Record<ExhibitType, string> = {
   stamps: "A Philatelic Tribute",
@@ -69,6 +69,12 @@ export default async function MuseumPage({ params }: MuseumPageProps) {
     );
   }
 
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .limit(1)
+    .maybeSingle<Profile>();
+
   const rooms = groupIntoRooms(sheets);
 
   return (
@@ -76,7 +82,7 @@ export default async function MuseumPage({ params }: MuseumPageProps) {
       rooms={rooms}
       exhibitTitle={exhibit.title}
       exhibitTagline={TRIBUTE_TAGLINES[exhibit.type]}
+      profile={profile}
     />
   );
-  
 }

@@ -5,6 +5,8 @@ import { Text } from "@react-three/drei";
 import { RoomFrame } from "@/components/museum/RoomFrame";
 import { EntrancePoster } from "@/components/museum/EntrancePoster";
 import { ModeChoicePoster } from "@/components/museum/ModeChoicePoster";
+import { BackWallWelcomePoster } from "@/components/museum/BackWallWelcomePoster";
+import type { Profile } from "@/lib/supabase/database.types";
 import { ROOM_SIZE, ROOM_HEIGHT, DOOR_WIDTH, FOYER_DEPTH } from "@/lib/museum/roomConstants";
 import {
   type MuseumRoom,
@@ -19,6 +21,7 @@ interface RoomsShellProps {
   rooms: MuseumRoom[];
   exhibitTitle?: string;
   exhibitTagline?: string;
+  profile?: Profile | null;
 }
 
 const WALL_COLOR = "#EAF1F8";
@@ -69,7 +72,7 @@ function Pillar({ x, z }: { x: number; z: number }) {
  * Room 1's doorway, the two exhibit-specific posters from Step A, and
  * every room's floor, ceiling, walls, and mounted sheets.
  */
-export function RoomsShell({ rooms, exhibitTitle, exhibitTagline }: RoomsShellProps) {
+export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile }: RoomsShellProps) {
   const numRooms = rooms.length;
   const frontZ = foyerFrontZ();
   const backZ = exitWallZ(numRooms - 1);
@@ -82,6 +85,7 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline }: RoomsShellPr
   const matZ = entryWallZ(0) + matDepth / 2;
   const taglinePosterZ = entryWallZ(0) + 3.5;
   const modePosterZ = entryWallZ(0) + 9;
+  const welcomePosterZ = entryWallZ(0) + 9;
   const frontPosterFlank = DOOR_WIDTH / 2 + 1.3 + 0.3;
 
   return (
@@ -151,7 +155,11 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline }: RoomsShellPr
         position={[half - 0.05, ROOM_HEIGHT / 2, modePosterZ]}
         rotationY={-Math.PI / 2}
       />
-
+      <BackWallWelcomePoster
+        position={[-half + 0.05, ROOM_HEIGHT / 2, welcomePosterZ]}
+        rotationY={Math.PI / 2}
+        profile={profile ?? null}
+      />
       <pointLight
         position={[0, ROOM_HEIGHT - 0.6, entryWallZ(0) + 1.2]}
         intensity={1.3}
