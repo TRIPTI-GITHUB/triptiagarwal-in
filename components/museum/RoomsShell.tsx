@@ -18,6 +18,10 @@ import {
   exitWallZ,
   foyerFrontZ,
   getFramePlacements,
+  LOBBY_BENCH_LEFT,
+  LOBBY_BENCH_RIGHT,
+  LOBBY_TABLE,
+  LOBBY_RECEPTION,
 } from "@/lib/museum/layout";
 
 interface RoomsShellProps {
@@ -89,8 +93,6 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile }: Roo
   const taglinePosterZ = entryWallZ(0) + 3.5;
   const modePosterZ = entryWallZ(0) + 9;
   const welcomePosterZ = entryWallZ(0) + 9;
-  const lobbySeatingZ = entryWallZ(0) + 6.25;
-  const receptionZ = frontZ - 2.2;
   const frontPosterFlank = DOOR_WIDTH / 2 + 1.3 + 0.3;
 
   return (
@@ -166,10 +168,15 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile }: Roo
         profile={profile ?? null}
       />
       
-      <LobbyBench position={[-3.2, 0, lobbySeatingZ]} rotationY={Math.PI / 2} />
-      <LobbyBench position={[3.2, 0, lobbySeatingZ]} rotationY={-Math.PI / 2} />
-      <LobbySideTable position={[0, 0, lobbySeatingZ]} />
-      <ReceptionCounter position={[-3.5, 0, receptionZ]} rotationY={Math.PI} />
+      {/* Benches face into the hall (toward the Room 1 doorway) rather
+          than each other, and the side table sits beside the right
+          bench - both clear of the x=0 sightline down the entry
+          corridor. See getLobbyFurnitureObstacles for the matching
+          collision boxes. */}
+      <LobbyBench position={LOBBY_BENCH_LEFT} rotationY={Math.PI} />
+      <LobbyBench position={LOBBY_BENCH_RIGHT} rotationY={Math.PI} />
+      <LobbySideTable position={LOBBY_TABLE} />
+      <ReceptionCounter position={LOBBY_RECEPTION} rotationY={Math.PI} />
 
       <pointLight
         position={[0, ROOM_HEIGHT - 0.6, entryWallZ(0) + 1.2]}

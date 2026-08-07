@@ -12,8 +12,8 @@ interface LobbySideTableProps {
 /**
  * LobbySideTable
  * A small round table with a gold-trimmed top and a simple stylized
- * potted plant on it - a decorative touch to fill the space between
- * the two facing benches.
+ * potted plant on it - a decorative accent placed beside one of the
+ * lobby benches, off the entry corridor's center sightline.
  */
 export function LobbySideTable({ position }: LobbySideTableProps) {
   return (

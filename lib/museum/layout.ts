@@ -1,5 +1,5 @@
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
-import { ROOM_SIZE, DOOR_WIDTH, FRAME_Y, FRAME_WIDTH, WALL_MARGIN, EYE_HEIGHT, FOYER_DEPTH } from "@/lib/museum/roomConstants";
+import { ROOM_SIZE, DOOR_WIDTH, FRAME_Y, FRAME_WIDTH, WALL_MARGIN, EYE_HEIGHT, FOYER_DEPTH, FURNITURE_MARGIN } from "@/lib/museum/roomConstants";
 const DOORWAY_HALF = DOOR_WIDTH / 2;
 export interface MuseumRoom {
   title: string;
@@ -130,7 +130,69 @@ export function getDoorwayObstacles(numRooms: number): Obstacle[] {
   return obstacles;
 }
 
+// Lobby furniture placement - single source of truth shared by RoomsShell
+// (rendering) and getLobbyFurnitureObstacles (collision), so the two can
+// never drift apart. Benches face into the hall (toward the Room 1
+// doorway) rather than each other, and the side table sits beside the
+// right-hand bench, clear of the x=0 sightline down the entry corridor -
+// per the Lobby Design sightline guidance.
+const LOBBY_SEATING_Z = entryWallZ(0) + 6.25;
+const LOBBY_RECEPTION_Z = foyerFrontZ() - 2.2;
 
+export const LOBBY_BENCH_LEFT: [number, number, number] = [-3.2, 0, LOBBY_SEATING_Z];
+export const LOBBY_BENCH_RIGHT: [number, number, number] = [3.2, 0, LOBBY_SEATING_Z];
+export const LOBBY_TABLE: [number, number, number] = [4.7, 0, LOBBY_SEATING_Z];
+export const LOBBY_RECEPTION: [number, number, number] = [-3.5, 0, LOBBY_RECEPTION_Z];
+
+// Half-extents (world units) matching each prop's built geometry, with
+// rotation already accounted for. Kept here rather than in the prop
+// components since only the collision layer needs them.
+const BENCH_HALF_X = 0.85;
+const BENCH_HALF_Z = 0.275;
+const TABLE_HALF = 0.36;
+// ReceptionCounter's L-shaped desk + overhanging top isn't centered on
+// its anchor position - these offsets are the counter's actual bounding
+// box (in its rotationY=Math.PI orientation) relative to that anchor.
+const RECEPTION_OFFSET = { minX: -1.2, maxX: 1.8, minZ: -0.8, maxZ: 0.6 };
+
+/**
+ * getLobbyFurnitureObstacles
+ * Solid collision rectangles for the lobby benches, side table, and
+ * reception counter - a visitor can walk up to and around each piece
+ * but never through it, per the "collision is core to believability"
+ * requirement.
+ */
+export function getLobbyFurnitureObstacles(): Obstacle[] {
+  const m = FURNITURE_MARGIN;
+  const obstacles: Obstacle[] = [];
+
+  for (const [x, , z] of [LOBBY_BENCH_LEFT, LOBBY_BENCH_RIGHT]) {
+    obstacles.push({
+      minX: x - BENCH_HALF_X - m,
+      maxX: x + BENCH_HALF_X + m,
+      minZ: z - BENCH_HALF_Z - m,
+      maxZ: z + BENCH_HALF_Z + m,
+    });
+  }
+
+  const [tableX, , tableZ] = LOBBY_TABLE;
+  obstacles.push({
+    minX: tableX - TABLE_HALF - m,
+    maxX: tableX + TABLE_HALF + m,
+    minZ: tableZ - TABLE_HALF - m,
+    maxZ: tableZ + TABLE_HALF + m,
+  });
+
+  const [receptionX, , receptionZ] = LOBBY_RECEPTION;
+  obstacles.push({
+    minX: receptionX + RECEPTION_OFFSET.minX - m,
+    maxX: receptionX + RECEPTION_OFFSET.maxX + m,
+    minZ: receptionZ + RECEPTION_OFFSET.minZ - m,
+    maxZ: receptionZ + RECEPTION_OFFSET.maxZ + m,
+  });
+
+  return obstacles;
+}
 
 /**
  * groupIntoRooms

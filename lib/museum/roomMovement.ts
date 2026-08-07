@@ -1,6 +1,6 @@
 import * as THREE from "three";
 import { EYE_HEIGHT } from "@/lib/museum/roomConstants";
-import { getOuterBounds, getDoorwayObstacles, type Obstacle } from "@/lib/museum/layout";
+import { getOuterBounds, getDoorwayObstacles, getLobbyFurnitureObstacles, type Obstacle } from "@/lib/museum/layout";
 
 function collides(x: number, z: number, obstacles: Obstacle[]): boolean {
   return obstacles.some(
@@ -12,9 +12,10 @@ function collides(x: number, z: number, obstacles: Obstacle[]): boolean {
  * moveCameraInRooms
  * Shared movement logic for the room-based layout, used by both
  * desktop and mobile controls. Moves relative to the camera's facing
- * direction, then resolves collisions against the outer hall bounds
- * and doorway wall segments - checking axes separately so sliding
- * along a wall works instead of movement stopping dead on contact.
+ * direction, then resolves collisions against the outer hall bounds,
+ * doorway wall segments, and lobby furniture - checking axes
+ * separately so sliding along a wall works instead of movement
+ * stopping dead on contact.
  */
 export function moveCameraInRooms(
   camera: THREE.Camera,
@@ -36,7 +37,7 @@ export function moveCameraInRooms(
   delta.addScaledVector(right, moveX * distance);
 
   const bounds = getOuterBounds(numRooms);
-  const obstacles = getDoorwayObstacles(numRooms);
+  const obstacles = [...getDoorwayObstacles(numRooms), ...getLobbyFurnitureObstacles()];
 
   let nextX = camera.position.x + delta.x;
   let nextZ = camera.position.z + delta.z;

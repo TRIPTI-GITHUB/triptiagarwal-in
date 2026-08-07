@@ -11,3 +11,4 @@ export const WALL_MARGIN = 0.5;
 export const WALK_SPEED = 3;
 export const FOYER_DEPTH = 12; // extra approach space in front of Room 1, for the entrance
 export const TURN_SPEED = 1.8;
+export const FURNITURE_MARGIN = 0.3; // clearance added around lobby furniture collision boxes
