@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { EYE_HEIGHT, FRAME_Y, DOLLY_SPEED, DOLLY_ARRIVE_THRESHOLD } from "@/lib/museum/roomConstants";
+import { dampedEaseFactor } from "@/lib/museum/easing";
 
 interface ExhibitDollyProps {
   targetX: number;
@@ -58,7 +59,7 @@ export function ExhibitDolly({
       lookAtPoint.current = camera.position.clone().add(forward);
     }
 
-    const t = 1 - Math.exp(-DOLLY_SPEED * delta);
+    const t = dampedEaseFactor(DOLLY_SPEED, delta);
 
     if (returning) {
       camera.position.lerp(returnPose.current.position, t);

@@ -6,6 +6,7 @@ import { FRAME_WIDTH, FRAME_HEIGHT } from "@/lib/museum/roomConstants";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
 const PLAYFAIR_FONT = "/fonts/PlayfairDisplay-Bold.ttf";
+const AWARD_GLOW_COLOR = "#F0C75E";
 
 interface RoomFrameArtworkProps {
   sheet: ExhibitSheet;
@@ -33,10 +34,39 @@ interface RoomFrameProps {
  * rich mahogany outer border (lightened from an earlier near-black
  * shade so it reads as brown even in dimmer corners), a thin gold
  * inner trim, and the sheet image (unlit, always true brightness).
+ * Award/recognition sheets (section 9) get a soft gold glow - a faint
+ * emissive rim behind the frame plus a low, short-range point light -
+ * distinguishing them from regular collection sheets without being
+ * flashy.
  */
 export function RoomFrame({ sheet, position, rotationY }: RoomFrameProps) {
+  const isAward = sheet.category === "award";
+
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
+      {isAward && (
+        <>
+          <mesh position={[0, 0, -0.02]}>
+            <planeGeometry args={[FRAME_WIDTH + 0.3, FRAME_HEIGHT + 0.3]} />
+            <meshStandardMaterial
+              color={AWARD_GLOW_COLOR}
+              emissive={AWARD_GLOW_COLOR}
+              emissiveIntensity={0.6}
+              transparent
+              opacity={0.22}
+              depthWrite={false}
+            />
+          </mesh>
+          <pointLight
+            position={[0, 0, 0.6]}
+            color={AWARD_GLOW_COLOR}
+            intensity={0.8}
+            distance={2.5}
+            decay={2}
+          />
+        </>
+      )}
+
       <mesh userData={{ isExhibitFrame: true, sheet: sheet }}>
         <planeGeometry args={[FRAME_WIDTH, FRAME_HEIGHT]} />
         <meshStandardMaterial color="#5C3A21" />

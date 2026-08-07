@@ -18,6 +18,9 @@ import { ExhibitDolly } from "@/components/museum/ExhibitDolly";
 import { ExhibitModal } from "@/components/museum/ExhibitModal";
 import { ProximityTrigger } from "@/components/museum/ProximityTrigger";
 import { ApproachCue } from "@/components/museum/ApproachCue";
+import { DakCompanion } from "@/components/museum/DakCompanion";
+import { DakDialogueBubble } from "@/components/museum/DakDialogueBubble";
+import { DakToggle } from "@/components/museum/DakToggle";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
 import {
   ROOM_HEIGHT,
@@ -28,6 +31,7 @@ import {
   DOLLY_STANDOFF_MAX,
   DOLLY_STANDOFF_STEP,
 } from "@/lib/museum/roomConstants";
+import { DAK_GREETING_LINES, DAK_GREETING_ENTRY_DELAY_MS, DAK_GREETING_DURATION_MS, type DakMode } from "@/lib/museum/dakConfig";
 import {
   buildTourPath,
   buildSheetLabels,
@@ -75,6 +79,13 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
   const [tourMode, setTourMode] = useState(false);
   const [navIndex, setNavIndex] = useState(-1);
   const [entered, setEntered] = useState(false);
+  const [dakMode, setDakMode] = useState<DakMode>("idle");
+  const [dakDismissed, setDakDismissed] = useState(false);
+  const [dakLine, setDakLine] = useState<string>(DAK_GREETING_LINES[0]);
+  const hasGreetedRef = useRef(false);
+  const dakDismissedRef = useRef(dakDismissed);
+  const dakGreetTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dakRevertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const numRooms = rooms.length;
 
   useEffect(() => {
@@ -84,6 +95,32 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
       document.body.style.overflow = previous;
     };
   }, []);
+
+  useEffect(() => {
+    dakDismissedRef.current = dakDismissed;
+  }, [dakDismissed]);
+
+  // One-time lobby greeting: fires once per session, shortly after the
+  // visitor dismisses WelcomeOverlay. A ProximityTrigger doesn't fit
+  // here - the camera spawns inside the lobby, so there's no boundary
+  // to cross - `entered` is already the exact "visitor is now in the
+  // lobby" signal.
+  useEffect(() => {
+    if (!entered || hasGreetedRef.current) return;
+
+    dakGreetTimerRef.current = setTimeout(() => {
+      if (dakDismissedRef.current) return;
+      hasGreetedRef.current = true;
+      setDakLine(DAK_GREETING_LINES[Math.floor(Math.random() * DAK_GREETING_LINES.length)]);
+      setDakMode("greeting");
+      dakRevertTimerRef.current = setTimeout(() => setDakMode("idle"), DAK_GREETING_DURATION_MS);
+    }, DAK_GREETING_ENTRY_DELAY_MS);
+
+    return () => {
+      if (dakGreetTimerRef.current) clearTimeout(dakGreetTimerRef.current);
+      if (dakRevertTimerRef.current) clearTimeout(dakRevertTimerRef.current);
+    };
+  }, [entered]);
 
   const tourPath = useMemo(() => buildTourPath(rooms), [rooms]);
   const sheetLabels = useMemo(() => buildSheetLabels(rooms), [rooms]);
@@ -99,6 +136,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
   const viewerActive = selectedSheet !== null;
   const activePlacement = selectedSheet ? placementById.get(selectedSheet.id) : undefined;
   const activeFlatIndex = selectedSheet ? flatSheets.findIndex((f) => f.sheet.id === selectedSheet.id) : -1;
+  const effectiveDakMode: DakMode = dakDismissed ? "dismissed" : dakMode;
 
   function toggleMode() {
     setTourMode((prev) => {
@@ -176,6 +214,15 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
     });
   }
 
+  function dismissDakGreeting() {
+    if (dakRevertTimerRef.current) clearTimeout(dakRevertTimerRef.current);
+    setDakMode("idle");
+  }
+
+  function toggleDak() {
+    setDakDismissed((d) => !d);
+  }
+
   return (
     <div className="fixed inset-0 z-[60] bg-black">
       <Canvas camera={{ position: [0, EYE_HEIGHT, foyerFrontZ() - 1.5], fov: 60 }}>
@@ -194,6 +241,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
         ))}
         <RoomsShell rooms={rooms} exhibitTitle={exhibitTitle} exhibitTagline={exhibitTagline} profile={profile} />
         <MinimapTracker poseRef={poseRef} />
+        <DakCompanion mode={effectiveDakMode} />
 
         {placements.map((p) => (
           <ProximityTrigger
@@ -245,6 +293,17 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
       </Canvas>
 
       <ApproachCue visible={entered && !viewerActive && !tourMode && nearSheet !== null} />
+
+      {!viewerActive && (
+        <>
+          <DakDialogueBubble
+            visible={dakMode === "greeting" && !dakDismissed}
+            line={dakLine}
+            onDismiss={dismissDakGreeting}
+          />
+          <DakToggle dismissed={dakDismissed} onToggle={toggleDak} />
+        </>
+      )}
 
       {exhibitTitle && (
         <div className="absolute top-4 left-4 z-10 pointer-events-none">

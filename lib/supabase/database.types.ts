@@ -49,6 +49,14 @@ export interface Exhibit {
 }
 
 /**
+ * ExhibitSheetCategory
+ * Mirrors the database "check" constraint on exhibit_sheets.category -
+ * 'award' sheets get the distinct spotlight/glow treatment (Design Doc
+ * section 9); everything else is 'collection'.
+ */
+export type ExhibitSheetCategory = "collection" | "award";
+
+/**
  * ExhibitSheet
  * `caption` is legacy/unused (kept for backward compatibility, never
  * populated going forward) - content is now authored across the five
@@ -71,6 +79,7 @@ export interface ExhibitSheet {
   design_features: string | null;
   personal_notes: string | null;
   curator_note: string | null;
+  category: ExhibitSheetCategory;
   created_at: string;
   updated_at: string;
 }

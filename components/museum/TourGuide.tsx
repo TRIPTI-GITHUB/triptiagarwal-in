@@ -4,6 +4,7 @@ import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { WALK_SPEED, MAX_INTERACT_DISTANCE } from "@/lib/museum/roomConstants";
+import { dampedEaseFactor } from "@/lib/museum/easing";
 import type { TourStop } from "@/lib/museum/layout";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
@@ -100,7 +101,7 @@ export function TourGuide({ stops, targetStopIndex, onSelect, paused }: TourGuid
     const targetPos = new THREE.Vector3(...stop.position);
     const targetLook = new THREE.Vector3(...stop.lookAt);
 
-    const t = 1 - Math.exp(-WALK_SPEED * delta);
+    const t = dampedEaseFactor(WALK_SPEED, delta);
     camera.position.lerp(targetPos, t);
     currentLookAt.current.lerp(targetLook, t);
     camera.lookAt(currentLookAt.current);
