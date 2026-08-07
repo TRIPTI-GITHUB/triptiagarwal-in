@@ -48,6 +48,15 @@ export interface Exhibit {
   updated_at: string;
 }
 
+/**
+ * ExhibitSheet
+ * `caption` is legacy/unused (kept for backward compatibility, never
+ * populated going forward) - content is now authored across the five
+ * structured fields below, matching ContentGuidelines.md's Collection
+ * Pages structure exactly. `curator_note` is a rare, deliberate-discovery
+ * micro-interaction (Design Doc section 9) - shown only when a visitor
+ * explicitly asks for it, never by default.
+ */
 export interface ExhibitSheet {
   id: string;
   exhibit_id: string;
@@ -56,6 +65,12 @@ export interface ExhibitSheet {
   caption: string | null;
   section_title: string | null;
   heading: string | null;
+  description: string | null;
+  historical_context: string | null;
+  interesting_facts: string | null;
+  design_features: string | null;
+  personal_notes: string | null;
+  curator_note: string | null;
   created_at: string;
   updated_at: string;
 }

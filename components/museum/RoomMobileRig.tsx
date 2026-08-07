@@ -4,7 +4,7 @@ import { useEffect, MutableRefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { moveCameraInRooms } from "@/lib/museum/roomMovement";
-import { TURN_SPEED } from "@/lib/museum/roomConstants";
+import { TURN_SPEED, MAX_INTERACT_DISTANCE } from "@/lib/museum/roomConstants";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
 const MOVE_SPEED = 3;
@@ -18,6 +18,7 @@ interface RoomMobileRigProps {
   numRooms: number;
   onSelectSheet: (sheet: ExhibitSheet) => void;
   onSelectMode: (mode: "tour" | "free") => void;
+  paused?: boolean;
 }
 
 /**
@@ -34,6 +35,7 @@ export function RoomMobileRig({
   numRooms,
   onSelectSheet,
   onSelectMode,
+  paused,
 }: RoomMobileRigProps) {
   const { camera, gl, scene } = useThree();
   const raycaster = new THREE.Raycaster();
@@ -43,6 +45,11 @@ export function RoomMobileRig({
   }, [camera]);
 
   useFrame((_, delta) => {
+    if (paused) {
+      tapRef.current.pending = false;
+      return;
+    }
+
     const look = lookRef.current;
     if (look.x !== 0 || look.y !== 0) {
       camera.rotation.y -= look.x * LOOK_SENSITIVITY;
@@ -72,7 +79,7 @@ export function RoomMobileRig({
       const closest = hits[0];
 
       if (closest && closest.object.userData) {
-        if (closest.object.userData.isExhibitFrame) {
+        if (closest.object.userData.isExhibitFrame && closest.distance < MAX_INTERACT_DISTANCE) {
           onSelectSheet(closest.object.userData.sheet as ExhibitSheet);
         } else if (closest.object.userData.isModeOption) {
           onSelectMode(closest.object.userData.mode as "tour" | "free");

@@ -14,10 +14,28 @@ import { TourGuide } from "@/components/museum/TourGuide";
 import { TourControls } from "@/components/museum/TourControls";
 import { TourArrowNav } from "@/components/museum/TourArrowNav";
 import { WelcomeOverlay } from "@/components/museum/WelcomeOverlay";
-import { SheetModal } from "@/components/museum/SheetModal";
+import { ExhibitDolly } from "@/components/museum/ExhibitDolly";
+import { ExhibitModal } from "@/components/museum/ExhibitModal";
+import { ProximityTrigger } from "@/components/museum/ProximityTrigger";
+import { ApproachCue } from "@/components/museum/ApproachCue";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
-import { ROOM_HEIGHT, EYE_HEIGHT } from "@/lib/museum/roomConstants";
-import { buildTourPath, buildSheetLabels, roomCenterZ, foyerFrontZ, type MuseumRoom } from "@/lib/museum/layout";
+import {
+  ROOM_HEIGHT,
+  EYE_HEIGHT,
+  PROXIMITY_RADIUS,
+  DOLLY_STANDOFF_DEFAULT,
+  DOLLY_STANDOFF_MIN,
+  DOLLY_STANDOFF_MAX,
+  DOLLY_STANDOFF_STEP,
+} from "@/lib/museum/roomConstants";
+import {
+  buildTourPath,
+  buildSheetLabels,
+  roomCenterZ,
+  foyerFrontZ,
+  getFramePlacements,
+  type MuseumRoom,
+} from "@/lib/museum/layout";
 import type { ExhibitSheet, Profile } from "@/lib/supabase/database.types";
 
 interface RoomMuseumSceneProps {
@@ -29,11 +47,18 @@ interface RoomMuseumSceneProps {
 
 /**
  * RoomMuseumScene
- * Client Component - the room-based museum's entry point. Starts
- * with a full-screen WelcomeOverlay covering the entrance foyer;
- * dismissing it reveals the museum, already loaded behind it. Mode
- * can be set either via the top-right toggle or by clicking the
- * ModeChoicePoster in the foyer (handleModeSelect).
+ * Client Component - the room-based museum's entry point. Starts with a
+ * full-screen WelcomeOverlay covering the entrance foyer; dismissing it
+ * reveals the museum, already loaded behind it. Mode can be set either
+ * via the top-right toggle or by clicking the ModeChoicePoster in the
+ * foyer (handleModeSelect).
+ *
+ * The exhibit vitrine viewer (ExhibitDolly + ExhibitModal) takes over the
+ * camera whenever a sheet is selected - the active movement controller
+ * (RoomFreeRoam / RoomMobileRig / TourGuide) is paused for that entire
+ * lifecycle, and only regains control once the viewer has eased the
+ * camera back to the visitor's exact standing position on close (see
+ * closeViewer / handleDollyArrived) - never a reset to the room entrance.
  */
 export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }: RoomMuseumSceneProps) {
   const isTouch = useIsTouchDevice();
@@ -43,6 +68,10 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
   const turnRef = useRef({ left: false, right: false });
   const poseRef = useRef<MinimapPose>({ x: 0, z: foyerFrontZ(), facingX: 0, facingZ: -1 });
   const [selectedSheet, setSelectedSheet] = useState<ExhibitSheet | null>(null);
+  const [chromeVisible, setChromeVisible] = useState(false);
+  const [closingViewer, setClosingViewer] = useState(false);
+  const [standoff, setStandoff] = useState(DOLLY_STANDOFF_DEFAULT);
+  const [nearSheet, setNearSheet] = useState<ExhibitSheet | null>(null);
   const [tourMode, setTourMode] = useState(false);
   const [navIndex, setNavIndex] = useState(-1);
   const [entered, setEntered] = useState(false);
@@ -58,6 +87,8 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
 
   const tourPath = useMemo(() => buildTourPath(rooms), [rooms]);
   const sheetLabels = useMemo(() => buildSheetLabels(rooms), [rooms]);
+  const placements = useMemo(() => getFramePlacements(rooms), [rooms]);
+  const placementById = useMemo(() => new Map(placements.map((p) => [p.sheet.id, p])), [placements]);
 
   const flatSheets = useMemo(
     () => rooms.flatMap((room) => room.sheets.map((sheet) => ({ sheet, roomTitle: room.title }))),
@@ -65,6 +96,9 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
   );
   const totalSheets = flatSheets.length;
   const targetStopIndex = tourPath.navigableIndices[navIndex + 1] ?? tourPath.navigableIndices[0];
+  const viewerActive = selectedSheet !== null;
+  const activePlacement = selectedSheet ? placementById.get(selectedSheet.id) : undefined;
+  const activeFlatIndex = selectedSheet ? flatSheets.findIndex((f) => f.sheet.id === selectedSheet.id) : -1;
 
   function toggleMode() {
     setTourMode((prev) => {
@@ -90,6 +124,58 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
     setNavIndex((i) => Math.max(-1, i - 1));
   }
 
+  function openSheet(sheet: ExhibitSheet) {
+    setSelectedSheet(sheet);
+    setChromeVisible(false);
+    setClosingViewer(false);
+    setStandoff(DOLLY_STANDOFF_DEFAULT);
+  }
+
+  function closeViewer() {
+    setChromeVisible(false);
+    setClosingViewer(true);
+  }
+
+  function handleDollyArrived() {
+    if (closingViewer) {
+      setSelectedSheet(null);
+      setClosingViewer(false);
+    } else {
+      setChromeVisible(true);
+    }
+  }
+
+  function stepToFlatIndex(index: number) {
+    const entry = flatSheets[index];
+    if (!entry) return;
+    setSelectedSheet(entry.sheet);
+    setNavIndex(index);
+  }
+
+  function handleViewerNext() {
+    stepToFlatIndex(activeFlatIndex + 1);
+  }
+
+  function handleViewerPrev() {
+    stepToFlatIndex(activeFlatIndex - 1);
+  }
+
+  function handleZoomIn() {
+    setStandoff((s) => Math.max(DOLLY_STANDOFF_MIN, s - DOLLY_STANDOFF_STEP));
+  }
+
+  function handleZoomOut() {
+    setStandoff((s) => Math.min(DOLLY_STANDOFF_MAX, s + DOLLY_STANDOFF_STEP));
+  }
+
+  function handleProximityChange(sheet: ExhibitSheet, isNear: boolean) {
+    setNearSheet((prev) => {
+      if (isNear) return sheet;
+      if (prev && prev.id === sheet.id) return null;
+      return prev;
+    });
+  }
+
   return (
     <div className="fixed inset-0 z-[60] bg-black">
       <Canvas camera={{ position: [0, EYE_HEIGHT, foyerFrontZ() - 1.5], fov: 60 }}>
@@ -109,11 +195,32 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
         <RoomsShell rooms={rooms} exhibitTitle={exhibitTitle} exhibitTagline={exhibitTagline} profile={profile} />
         <MinimapTracker poseRef={poseRef} />
 
+        {placements.map((p) => (
+          <ProximityTrigger
+            key={p.sheet.id}
+            position={[p.x, EYE_HEIGHT, p.z]}
+            radius={PROXIMITY_RADIUS}
+            onChange={(isNear) => handleProximityChange(p.sheet, isNear)}
+          />
+        ))}
+
+        {activePlacement && (
+          <ExhibitDolly
+            targetX={activePlacement.x}
+            targetZ={activePlacement.z}
+            rotationY={activePlacement.rotationY}
+            standoff={standoff}
+            returning={closingViewer}
+            onArrived={handleDollyArrived}
+          />
+        )}
+
         {tourMode ? (
           <TourGuide
             stops={tourPath.stops}
             targetStopIndex={targetStopIndex}
-            onSelect={setSelectedSheet}
+            onSelect={openSheet}
+            paused={viewerActive}
           />
         ) : isTouch ? (
           <RoomMobileRig
@@ -122,18 +229,22 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
             tapRef={tapRef}
             turnRef={turnRef}
             numRooms={numRooms}
-            onSelectSheet={setSelectedSheet}
+            onSelectSheet={openSheet}
             onSelectMode={handleModeSelect}
+            paused={viewerActive}
           />
         ) : (
           <RoomFreeRoam
             numRooms={numRooms}
-            onSelectSheet={setSelectedSheet}
+            onSelectSheet={openSheet}
             onSelectMode={handleModeSelect}
             turnRef={turnRef}
+            paused={viewerActive}
           />
         )}
       </Canvas>
+
+      <ApproachCue visible={entered && !viewerActive && !tourMode && nearSheet !== null} />
 
       {exhibitTitle && (
         <div className="absolute top-4 left-4 z-10 pointer-events-none">
@@ -143,7 +254,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
         </div>
       )}
 
-      {!tourMode && isTouch && (
+      {!tourMode && isTouch && !viewerActive && (
         <>
           <TouchJoystick moveRef={touchMoveRef} />
           <TouchLookArea lookRef={touchLookRef} tapRef={tapRef} />
@@ -155,7 +266,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
         </>
       )}
 
-      {!tourMode && !isTouch && (
+      {!tourMode && !isTouch && !viewerActive && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none">
           <p className="text-white/70 text-xs bg-black/50 px-3 py-1 rounded-full">
             W/S walk - A/D strafe - arrow keys, drag, or buttons to look - click a sheet to view it
@@ -163,11 +274,11 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
         </div>
       )}
 
-      {!tourMode && <RotationArrows turnRef={turnRef} />}
+      {!tourMode && !viewerActive && <RotationArrows turnRef={turnRef} />}
 
-      <TourControls tourMode={tourMode} onToggleMode={toggleMode} />
+      {!viewerActive && <TourControls tourMode={tourMode} onToggleMode={toggleMode} />}
 
-      {tourMode && (
+      {tourMode && !viewerActive && (
         <TourArrowNav
           onPrev={goPrev}
           onNext={goNext}
@@ -176,7 +287,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
         />
       )}
 
-      <Minimap numRooms={numRooms} poseRef={poseRef} />
+      {!viewerActive && <Minimap numRooms={numRooms} poseRef={poseRef} />}
 
       <WelcomeOverlay
         title={exhibitTitle ?? "The Gallery"}
@@ -185,10 +296,18 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
       />
 
       {selectedSheet && (
-        <SheetModal
+        <ExhibitModal
           sheet={selectedSheet}
-          onClose={() => setSelectedSheet(null)}
           label={sheetLabels.get(selectedSheet.id)}
+          visible={chromeVisible}
+          standoff={standoff}
+          onClose={closeViewer}
+          onPrev={handleViewerPrev}
+          onNext={handleViewerNext}
+          atStart={activeFlatIndex <= 0}
+          atEnd={activeFlatIndex >= totalSheets - 1}
+          onZoomIn={handleZoomIn}
+          onZoomOut={handleZoomOut}
         />
       )}
     </div>

@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
-import { WALK_SPEED } from "@/lib/museum/roomConstants";
+import { WALK_SPEED, MAX_INTERACT_DISTANCE } from "@/lib/museum/roomConstants";
 import type { TourStop } from "@/lib/museum/layout";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
@@ -11,6 +11,7 @@ interface TourGuideProps {
   stops: TourStop[];
   targetStopIndex: number;
   onSelect: (sheet: ExhibitSheet) => void;
+  paused?: boolean;
 }
 
 const ARRIVE_THRESHOLD = 0.15;
@@ -28,12 +29,17 @@ const CLICK_MOVE_THRESHOLD = 6;
  * currently in view still opens it, same raycasting approach as
  * RoomFreeRoam.
  */
-export function TourGuide({ stops, targetStopIndex, onSelect }: TourGuideProps) {
+export function TourGuide({ stops, targetStopIndex, onSelect, paused }: TourGuideProps) {
   const { camera, gl, scene } = useThree();
   const currentIndexRef = useRef(0);
   const currentLookAt = useRef(new THREE.Vector3());
   const pointerDownPos = useRef({ x: 0, y: 0 });
   const raycaster = useRef(new THREE.Raycaster());
+  const pausedRef = useRef(paused);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   useEffect(() => {
     const start = stops[currentIndexRef.current];
@@ -53,6 +59,8 @@ export function TourGuide({ stops, targetStopIndex, onSelect }: TourGuideProps) 
     }
 
     function handlePointerUp(e: PointerEvent) {
+      if (pausedRef.current) return;
+
       const dx = e.clientX - pointerDownPos.current.x;
       const dy = e.clientY - pointerDownPos.current.y;
       if (Math.sqrt(dx * dx + dy * dy) > CLICK_MOVE_THRESHOLD) return;
@@ -65,7 +73,12 @@ export function TourGuide({ stops, targetStopIndex, onSelect }: TourGuideProps) 
       const hits = raycaster.current.intersectObjects(scene.children, true);
       const closest = hits[0];
 
-      if (closest && closest.object.userData && closest.object.userData.isExhibitFrame) {
+      if (
+        closest &&
+        closest.object.userData &&
+        closest.object.userData.isExhibitFrame &&
+        closest.distance < MAX_INTERACT_DISTANCE
+      ) {
         onSelect(closest.object.userData.sheet as ExhibitSheet);
       }
     }
@@ -79,6 +92,8 @@ export function TourGuide({ stops, targetStopIndex, onSelect }: TourGuideProps) 
   }, [camera, gl, scene, onSelect]);
 
   useFrame((_, delta) => {
+    if (pausedRef.current) return;
+
     const stop = stops[currentIndexRef.current];
     if (!stop) return;
 

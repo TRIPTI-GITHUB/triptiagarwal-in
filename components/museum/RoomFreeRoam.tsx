@@ -4,7 +4,7 @@ import { useEffect, useRef, MutableRefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { moveCameraInRooms } from "@/lib/museum/roomMovement";
-import { TURN_SPEED } from "@/lib/museum/roomConstants";
+import { TURN_SPEED, MAX_INTERACT_DISTANCE } from "@/lib/museum/roomConstants";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
 const MOVE_SPEED = 3;
@@ -16,6 +16,7 @@ interface RoomFreeRoamProps {
   onSelectSheet: (sheet: ExhibitSheet) => void;
   onSelectMode: (mode: "tour" | "free") => void;
   turnRef: MutableRefObject<{ left: boolean; right: boolean }>;
+  paused?: boolean;
 }
 
 /**
@@ -26,7 +27,7 @@ interface RoomFreeRoamProps {
  * userData.isModeOption (from ModeChoicePoster) selects a mode -
  * both handled by the same click-vs-drag detection.
  */
-export function RoomFreeRoam({ numRooms, onSelectSheet, onSelectMode, turnRef }: RoomFreeRoamProps) {
+export function RoomFreeRoam({ numRooms, onSelectSheet, onSelectMode, turnRef, paused }: RoomFreeRoamProps) {
   const { camera, gl, scene } = useThree();
 
   const keys = useRef({
@@ -41,6 +42,11 @@ export function RoomFreeRoam({ numRooms, onSelectSheet, onSelectMode, turnRef }:
   const pointerDownPos = useRef({ x: 0, y: 0 });
   const lastPointer = useRef({ x: 0, y: 0 });
   const raycaster = useRef(new THREE.Raycaster());
+  const pausedRef = useRef(paused);
+
+  useEffect(() => {
+    pausedRef.current = paused;
+  }, [paused]);
 
   useEffect(() => {
     camera.rotation.order = "YXZ";
@@ -139,6 +145,7 @@ export function RoomFreeRoam({ numRooms, onSelectSheet, onSelectMode, turnRef }:
 
     function handlePointerUp(e: PointerEvent) {
       isDragging.current = false;
+      if (pausedRef.current) return;
 
       const dx = e.clientX - pointerDownPos.current.x;
       const dy = e.clientY - pointerDownPos.current.y;
@@ -156,7 +163,7 @@ export function RoomFreeRoam({ numRooms, onSelectSheet, onSelectMode, turnRef }:
 
       if (!closest || !closest.object.userData) return;
 
-      if (closest.object.userData.isExhibitFrame) {
+      if (closest.object.userData.isExhibitFrame && closest.distance < MAX_INTERACT_DISTANCE) {
         onSelectSheet(closest.object.userData.sheet as ExhibitSheet);
       } else if (closest.object.userData.isModeOption) {
         onSelectMode(closest.object.userData.mode as "tour" | "free");
@@ -175,6 +182,8 @@ export function RoomFreeRoam({ numRooms, onSelectSheet, onSelectMode, turnRef }:
   }, [camera, gl, scene, onSelectSheet, onSelectMode]);
 
   useFrame((_, delta) => {
+    if (pausedRef.current) return;
+
     if (keys.current.turnLeft || turnRef.current.left) {
       camera.rotation.y += TURN_SPEED * delta;
     }
