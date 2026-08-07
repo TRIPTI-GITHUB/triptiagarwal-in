@@ -224,10 +224,13 @@ export function groupIntoRooms(sheets: ExhibitSheet[]): MuseumRoom[] {
   }));
 }
 
+export type TourScope = "quick" | "full";
+
 export interface TourStop {
   type: "entrance" | "doorway" | "sheet";
   position: [number, number, number];
   lookAt: [number, number, number];
+  sheet?: ExhibitSheet;
 }
 
 export interface TourPath {
@@ -241,15 +244,24 @@ const TOUR_STANDOFF = 4.0; // how far into the room a viewer stands back from a 
 
 /**
  * buildTourPath
- * Builds the full ordered walking path for guided tour mode: a
- * viewing spot in front of every sheet (derived from its wall-mount
- * position and facing angle, moved inward toward room center), plus
- * a hidden waypoint centered in every doorway the tour must cross.
- * TourGuide walks through every stop in sequence, so a straight-line
+ * Builds the full ordered walking path for guided tour mode: a viewing
+ * spot in front of every sheet (derived from its wall-mount position and
+ * facing angle, moved inward toward room center), plus a hidden waypoint
+ * centered in every doorway between rooms. Dak (DakCompanion, `guiding`
+ * mode) walks through every stop in sequence, so a straight-line
  * shortcut through a wall never happens - the doorway stops guarantee
  * the path always threads through the actual gaps.
+ *
+ * `scope` controls which sheets are *navigable* (stops Dak actually
+ * pauses at and the visitor can jump to via Prev/Next) without changing
+ * where anything is positioned: 'full' includes every sheet; 'quick'
+ * includes only sheets flagged `featured`. Every sheet still gets a
+ * `stops` entry either way - Dak just passes by the un-navigable ones on
+ * his way to the next featured one, rather than skipping the room
+ * entirely (which would cut through walls the doorway waypoints exist to
+ * avoid).
  */
-export function buildTourPath(rooms: MuseumRoom[]): TourPath {
+export function buildTourPath(rooms: MuseumRoom[], scope: TourScope): TourPath {
   const placements = getFramePlacements(rooms);
   const stops: TourStop[] = [];
   const navigableIndices: number[] = [];
@@ -263,30 +275,66 @@ export function buildTourPath(rooms: MuseumRoom[]): TourPath {
 
   let placementIndex = 0;
   rooms.forEach((room, roomIndex) => {
-   stops.push({
-    type: "entrance",
-    position: [0, EYE_HEIGHT, foyerFrontZ() - 1.5],
-    lookAt: [0, EYE_HEIGHT, entryWallZ(0)],
-  });
+    if (roomIndex > 0) {
+      // Doorway waypoint transitioning from the previous room into this
+      // one - not navigable, purely a walk-through point.
+      stops.push({
+        type: "doorway",
+        position: [0, EYE_HEIGHT, entryWallZ(roomIndex)],
+        lookAt: [0, EYE_HEIGHT, roomCenterZ(roomIndex)],
+      });
+    }
 
     const count = Math.min(room.sheets.length, 8);
     for (let i = 0; i < count; i++) {
       const p = placements[placementIndex];
       placementIndex++;
+      if (!p) continue;
 
       const normalX = Math.sin(p.rotationY);
       const normalZ = Math.cos(p.rotationY);
 
       stops.push({
         type: "sheet",
+        sheet: p.sheet,
         position: [p.x + normalX * TOUR_STANDOFF, EYE_HEIGHT, p.z + normalZ * TOUR_STANDOFF],
         lookAt: [p.x, FRAME_Y, p.z],
       });
-      navigableIndices.push(stops.length - 1);
+
+      if (scope === "full" || p.sheet.featured) {
+        navigableIndices.push(stops.length - 1);
+      }
     }
   });
 
   return { stops, navigableIndices };
+}
+
+/**
+ * findNearestNavIndex
+ * For "continue as guided tour from here" (section 6): given the
+ * visitor's current x/z, finds the closest navigable stop and returns it
+ * as a `navIndex` (-1 = entrance, matching the convention every other
+ * nav-index consumer already uses) rather than a raw `stops` array
+ * index, so callers can feed it straight into the same state that
+ * Prev/Next already drive.
+ */
+export function findNearestNavIndex(tourPath: TourPath, x: number, z: number): number {
+  let bestNavIndex = -1;
+  let bestDistSq = Infinity;
+
+  tourPath.navigableIndices.forEach((stopIndex, i) => {
+    const stop = tourPath.stops[stopIndex];
+    const dx = stop.position[0] - x;
+    const dz = stop.position[2] - z;
+    const distSq = dx * dx + dz * dz;
+    if (distSq < bestDistSq) {
+      bestDistSq = distSq;
+      bestNavIndex = i - 1;
+    }
+  });
+
+  return bestNavIndex;
 }
 
 /**

@@ -4,10 +4,16 @@ import { useEffect, useRef, useState, MutableRefObject } from "react";
 import { ROOM_SIZE, DOOR_WIDTH } from "@/lib/museum/roomConstants";
 import { entryWallZ, totalHallLength } from "@/lib/museum/layout";
 import type { MinimapPose } from "@/components/museum/MinimapTracker";
+import type { DakLivePose } from "@/components/museum/DakCompanion";
 
 interface MinimapProps {
   numRooms: number;
   poseRef: MutableRefObject<MinimapPose>;
+  // Dak's live position while guiding a tour - renders as a second,
+  // gold marker so a visitor who wanders (or is just lagging behind)
+  // can glance down and see where their guide is, without a separate
+  // on-screen compass/arrow system.
+  guidePoseRef?: MutableRefObject<DakLivePose | null>;
 }
 
 const PAD = 1;
@@ -21,8 +27,9 @@ const UPDATE_INTERVAL_MS = 100;
  * walk (deeper into the gallery = further up the map), rather than
  * an arbitrary top-to-bottom room order.
  */
-export function Minimap({ numRooms, poseRef }: MinimapProps) {
+export function Minimap({ numRooms, poseRef, guidePoseRef }: MinimapProps) {
   const [pose, setPose] = useState<MinimapPose>({ x: 0, z: ROOM_SIZE, facingX: 0, facingZ: -1 });
+  const [guidePose, setGuidePose] = useState<DakLivePose | null>(null);
   const frameRef = useRef<number | null>(null);
 
   useEffect(() => {
@@ -31,6 +38,7 @@ export function Minimap({ numRooms, poseRef }: MinimapProps) {
     function tick(time: number) {
       if (time - lastUpdate >= UPDATE_INTERVAL_MS) {
         setPose({ ...poseRef.current });
+        setGuidePose(guidePoseRef?.current ? { ...guidePoseRef.current } : null);
         lastUpdate = time;
       }
       frameRef.current = requestAnimationFrame(tick);
@@ -41,7 +49,7 @@ export function Minimap({ numRooms, poseRef }: MinimapProps) {
     return () => {
       if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
     };
-  }, [poseRef]);
+  }, [poseRef, guidePoseRef]);
 
   const half = ROOM_SIZE / 2;
   const frontZ = entryWallZ(0);
@@ -131,8 +139,19 @@ export function Minimap({ numRooms, poseRef }: MinimapProps) {
           </text>
         ))}
 
+        {guidePose && (
+          <circle
+            cx={guidePose.x}
+            cy={mapY(guidePose.z)}
+            r={0.45}
+            fill="#C9A227"
+            stroke="#fff"
+            strokeWidth={0.08}
+          />
+        )}
+
         <g transform={`translate(${markerX} ${markerY}) rotate(${angleDeg})`}>
-          <polygon points="0,-0.6 0.4,0.4 -0.4,0.4" fill="#C9A227" stroke="#fff" strokeWidth={0.05} />
+          <polygon points="0,-0.6 0.4,0.4 -0.4,0.4" fill="#153A5B" stroke="#fff" strokeWidth={0.05} />
         </g>
       </svg>
     </div>

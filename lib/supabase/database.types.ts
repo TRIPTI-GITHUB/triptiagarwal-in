@@ -80,6 +80,7 @@ export interface ExhibitSheet {
   personal_notes: string | null;
   curator_note: string | null;
   category: ExhibitSheetCategory;
+  featured: boolean;
   created_at: string;
   updated_at: string;
 }

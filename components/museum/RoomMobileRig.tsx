@@ -5,6 +5,7 @@ import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { moveCameraInRooms } from "@/lib/museum/roomMovement";
 import { TURN_SPEED, MAX_INTERACT_DISTANCE } from "@/lib/museum/roomConstants";
+import type { MuseumModeChoice } from "@/components/museum/ModeChoicePoster";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
 const MOVE_SPEED = 3;
@@ -17,7 +18,7 @@ interface RoomMobileRigProps {
   turnRef: MutableRefObject<{ left: boolean; right: boolean }>;
   numRooms: number;
   onSelectSheet: (sheet: ExhibitSheet) => void;
-  onSelectMode: (mode: "tour" | "free") => void;
+  onSelectMode: (mode: MuseumModeChoice) => void;
   paused?: boolean;
 }
 
@@ -82,7 +83,7 @@ export function RoomMobileRig({
         if (closest.object.userData.isExhibitFrame && closest.distance < MAX_INTERACT_DISTANCE) {
           onSelectSheet(closest.object.userData.sheet as ExhibitSheet);
         } else if (closest.object.userData.isModeOption) {
-          onSelectMode(closest.object.userData.mode as "tour" | "free");
+          onSelectMode(closest.object.userData.mode as MuseumModeChoice);
         }
       }
 

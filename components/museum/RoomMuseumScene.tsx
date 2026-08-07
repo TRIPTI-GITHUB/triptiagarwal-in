@@ -10,17 +10,18 @@ import { TouchLookArea } from "@/components/museum/TouchLookArea";
 import { RotationArrows } from "@/components/museum/RotationArrows";
 import { MinimapTracker, type MinimapPose } from "@/components/museum/MinimapTracker";
 import { Minimap } from "@/components/museum/Minimap";
-import { TourGuide } from "@/components/museum/TourGuide";
 import { TourControls } from "@/components/museum/TourControls";
 import { TourArrowNav } from "@/components/museum/TourArrowNav";
+import { TourStopCaption } from "@/components/museum/TourStopCaption";
 import { WelcomeOverlay } from "@/components/museum/WelcomeOverlay";
 import { ExhibitDolly } from "@/components/museum/ExhibitDolly";
 import { ExhibitModal } from "@/components/museum/ExhibitModal";
 import { ProximityTrigger } from "@/components/museum/ProximityTrigger";
 import { ApproachCue } from "@/components/museum/ApproachCue";
-import { DakCompanion } from "@/components/museum/DakCompanion";
+import { DakCompanion, type DakLivePose } from "@/components/museum/DakCompanion";
 import { DakDialogueBubble } from "@/components/museum/DakDialogueBubble";
 import { DakToggle } from "@/components/museum/DakToggle";
+import type { MuseumModeChoice } from "@/components/museum/ModeChoicePoster";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
 import {
   ROOM_HEIGHT,
@@ -31,14 +32,22 @@ import {
   DOLLY_STANDOFF_MAX,
   DOLLY_STANDOFF_STEP,
 } from "@/lib/museum/roomConstants";
-import { DAK_GREETING_LINES, DAK_GREETING_ENTRY_DELAY_MS, DAK_GREETING_DURATION_MS, type DakMode } from "@/lib/museum/dakConfig";
+import {
+  DAK_GREETING_LINES,
+  DAK_GREETING_ENTRY_DELAY_MS,
+  DAK_GREETING_DURATION_MS,
+  DAK_TOUR_DWELL_MS,
+  type DakMode,
+} from "@/lib/museum/dakConfig";
 import {
   buildTourPath,
   buildSheetLabels,
+  findNearestNavIndex,
   roomCenterZ,
   foyerFrontZ,
   getFramePlacements,
   type MuseumRoom,
+  type TourScope,
 } from "@/lib/museum/layout";
 import type { ExhibitSheet, Profile } from "@/lib/supabase/database.types";
 
@@ -59,10 +68,18 @@ interface RoomMuseumSceneProps {
  *
  * The exhibit vitrine viewer (ExhibitDolly + ExhibitModal) takes over the
  * camera whenever a sheet is selected - the active movement controller
- * (RoomFreeRoam / RoomMobileRig / TourGuide) is paused for that entire
- * lifecycle, and only regains control once the viewer has eased the
- * camera back to the visitor's exact standing position on close (see
- * closeViewer / handleDollyArrived) - never a reset to the room entrance.
+ * (RoomFreeRoam / RoomMobileRig) is paused for that entire lifecycle, and
+ * only regains control once the viewer has eased the camera back to the
+ * visitor's exact standing position on close - never a reset to the room
+ * entrance.
+ *
+ * Guided tour mode (section 5) does NOT hijack the camera - the visitor
+ * always drives RoomFreeRoam/RoomMobileRig themselves, in tour mode or
+ * not. Dak (DakCompanion, `guiding` mode) walks the tour's stop sequence
+ * on his own pace via the same eased-movement technique ExhibitDolly
+ * uses, dwelling at each stop (handleDakArrived -> dwell timer) before
+ * moving to the next; the Minimap's gold guide marker is the "gentle
+ * indicator if they wander" rather than a separate compass overlay.
  */
 export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }: RoomMuseumSceneProps) {
   const isTouch = useIsTouchDevice();
@@ -71,13 +88,21 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
   const tapRef = useRef({ x: 0, y: 0, pending: false });
   const turnRef = useRef({ left: false, right: false });
   const poseRef = useRef<MinimapPose>({ x: 0, z: foyerFrontZ(), facingX: 0, facingZ: -1 });
+  const dakPoseRef = useRef<DakLivePose | null>(null);
+
   const [selectedSheet, setSelectedSheet] = useState<ExhibitSheet | null>(null);
   const [chromeVisible, setChromeVisible] = useState(false);
   const [closingViewer, setClosingViewer] = useState(false);
   const [standoff, setStandoff] = useState(DOLLY_STANDOFF_DEFAULT);
   const [nearSheet, setNearSheet] = useState<ExhibitSheet | null>(null);
+
   const [tourMode, setTourMode] = useState(false);
+  const [tourScope, setTourScope] = useState<TourScope>("full");
   const [navIndex, setNavIndex] = useState(-1);
+  const [dakArrivedAtStop, setDakArrivedAtStop] = useState(false);
+  const [tourComplete, setTourComplete] = useState(false);
+  const dakDwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [entered, setEntered] = useState(false);
   const [dakMode, setDakMode] = useState<DakMode>("idle");
   const [dakDismissed, setDakDismissed] = useState(false);
@@ -122,7 +147,6 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
     };
   }, [entered]);
 
-  const tourPath = useMemo(() => buildTourPath(rooms), [rooms]);
   const sheetLabels = useMemo(() => buildSheetLabels(rooms), [rooms]);
   const placements = useMemo(() => getFramePlacements(rooms), [rooms]);
   const placementById = useMemo(() => new Map(placements.map((p) => [p.sheet.id, p])), [placements]);
@@ -132,33 +156,102 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
     [rooms]
   );
   const totalSheets = flatSheets.length;
+
+  const tourPath = useMemo(() => buildTourPath(rooms, tourScope), [rooms, tourScope]);
+  const maxNavIndex = tourPath.navigableIndices.length - 2;
   const targetStopIndex = tourPath.navigableIndices[navIndex + 1] ?? tourPath.navigableIndices[0];
+  const currentStop = tourMode ? tourPath.stops[targetStopIndex] : undefined;
+
   const viewerActive = selectedSheet !== null;
   const activePlacement = selectedSheet ? placementById.get(selectedSheet.id) : undefined;
   const activeFlatIndex = selectedSheet ? flatSheets.findIndex((f) => f.sheet.id === selectedSheet.id) : -1;
-  const effectiveDakMode: DakMode = dakDismissed ? "dismissed" : dakMode;
+  const effectiveDakMode: DakMode = dakDismissed ? "dismissed" : tourMode ? "guiding" : dakMode;
 
-  function toggleMode() {
-    setTourMode((prev) => {
-      if (!prev) setNavIndex(-1);
-      return !prev;
-    });
-  }
-
-  function handleModeSelect(mode: "tour" | "free") {
-    if (mode === "tour") {
-      setTourMode(true);
-      setNavIndex(-1);
-    } else {
-      setTourMode(false);
+  function clearDakDwellTimer() {
+    if (dakDwellTimerRef.current) {
+      clearTimeout(dakDwellTimerRef.current);
+      dakDwellTimerRef.current = null;
     }
   }
 
+  function armDwellTimer() {
+    clearDakDwellTimer();
+    dakDwellTimerRef.current = setTimeout(() => {
+      setNavIndex((i) => {
+        if (i >= maxNavIndex) {
+          setTourComplete(true);
+          return i;
+        }
+        setDakArrivedAtStop(false);
+        return i + 1;
+      });
+    }, DAK_TOUR_DWELL_MS);
+  }
+
+  function handleDakArrived() {
+    setDakArrivedAtStop(true);
+    if (!tourMode || viewerActive) return;
+    armDwellTimer();
+  }
+
+  // Pause the dwell countdown while the exhibit viewer is open; resume
+  // with a fresh full dwell period once it closes, rather than tracking
+  // elapsed time through the pause.
+  useEffect(() => {
+    if (viewerActive) {
+      clearDakDwellTimer();
+    } else if (tourMode && dakArrivedAtStop && !tourComplete) {
+      armDwellTimer();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewerActive]);
+
+  function startTour(scope: TourScope, continueFromCurrent: boolean) {
+    clearDakDwellTimer();
+    setTourScope(scope);
+    setDakArrivedAtStop(false);
+    setTourComplete(false);
+    if (continueFromCurrent) {
+      const path = buildTourPath(rooms, scope);
+      setNavIndex(findNearestNavIndex(path, poseRef.current.x, poseRef.current.z));
+    } else {
+      setNavIndex(-1);
+    }
+    setTourMode(true);
+  }
+
+  function exitTour() {
+    clearDakDwellTimer();
+    setTourMode(false);
+  }
+
+  function toggleTourFromControls() {
+    if (tourMode) {
+      exitTour();
+    } else {
+      startTour("full", true);
+    }
+  }
+
+  function handleModeSelect(mode: MuseumModeChoice) {
+    if (mode === "free") {
+      exitTour();
+      return;
+    }
+    startTour(mode, false);
+  }
+
   function goNext() {
-    setNavIndex((i) => Math.min(totalSheets - 1, i + 1));
+    clearDakDwellTimer();
+    setDakArrivedAtStop(false);
+    setTourComplete(false);
+    setNavIndex((i) => Math.min(maxNavIndex, i + 1));
   }
 
   function goPrev() {
+    clearDakDwellTimer();
+    setDakArrivedAtStop(false);
+    setTourComplete(false);
     setNavIndex((i) => Math.max(-1, i - 1));
   }
 
@@ -241,7 +334,14 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
         ))}
         <RoomsShell rooms={rooms} exhibitTitle={exhibitTitle} exhibitTagline={exhibitTagline} profile={profile} />
         <MinimapTracker poseRef={poseRef} />
-        <DakCompanion mode={effectiveDakMode} />
+        <DakCompanion
+          mode={effectiveDakMode}
+          position={tourMode && currentStop ? currentStop.position : undefined}
+          lookAt={tourMode && currentStop ? currentStop.lookAt : undefined}
+          paused={viewerActive}
+          livePoseRef={dakPoseRef}
+          onArrived={handleDakArrived}
+        />
 
         {placements.map((p) => (
           <ProximityTrigger
@@ -263,14 +363,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
           />
         )}
 
-        {tourMode ? (
-          <TourGuide
-            stops={tourPath.stops}
-            targetStopIndex={targetStopIndex}
-            onSelect={openSheet}
-            paused={viewerActive}
-          />
-        ) : isTouch ? (
+        {isTouch ? (
           <RoomMobileRig
             moveRef={touchMoveRef}
             lookRef={touchLookRef}
@@ -294,16 +387,16 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
 
       <ApproachCue visible={entered && !viewerActive && !tourMode && nearSheet !== null} />
 
-      {!viewerActive && (
+      {!viewerActive && !tourMode && (
         <>
           <DakDialogueBubble
             visible={dakMode === "greeting" && !dakDismissed}
             line={dakLine}
             onDismiss={dismissDakGreeting}
           />
-          <DakToggle dismissed={dakDismissed} onToggle={toggleDak} />
         </>
       )}
+      {!viewerActive && <DakToggle dismissed={dakDismissed} onToggle={toggleDak} />}
 
       {exhibitTitle && (
         <div className="absolute top-4 left-4 z-10 pointer-events-none">
@@ -313,7 +406,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
         </div>
       )}
 
-      {!tourMode && isTouch && !viewerActive && (
+      {isTouch && !viewerActive && (
         <>
           <TouchJoystick moveRef={touchMoveRef} />
           <TouchLookArea lookRef={touchLookRef} tapRef={tapRef} />
@@ -325,7 +418,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
         </>
       )}
 
-      {!tourMode && !isTouch && !viewerActive && (
+      {!isTouch && !viewerActive && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none">
           <p className="text-white/70 text-xs bg-black/50 px-3 py-1 rounded-full">
             W/S walk - A/D strafe - arrow keys, drag, or buttons to look - click a sheet to view it
@@ -333,20 +426,30 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
         </div>
       )}
 
-      {!tourMode && !viewerActive && <RotationArrows turnRef={turnRef} />}
+      {!viewerActive && <RotationArrows turnRef={turnRef} />}
 
-      {!viewerActive && <TourControls tourMode={tourMode} onToggleMode={toggleMode} />}
+      {!viewerActive && <TourControls tourMode={tourMode} onToggleMode={toggleTourFromControls} />}
 
       {tourMode && !viewerActive && (
-        <TourArrowNav
-          onPrev={goPrev}
-          onNext={goNext}
-          atStart={navIndex <= -1}
-          atEnd={navIndex >= totalSheets - 1}
+        <TourArrowNav onPrev={goPrev} onNext={goNext} atStart={navIndex <= -1} atEnd={navIndex >= maxNavIndex} />
+      )}
+
+      {tourMode && !viewerActive && (
+        <TourStopCaption
+          visible={dakArrivedAtStop || tourComplete}
+          sheet={currentStop?.sheet ?? null}
+          label={currentStop?.sheet ? sheetLabels.get(currentStop.sheet.id) : undefined}
+          finished={tourComplete}
+          onViewCloser={() => {
+            if (currentStop?.sheet) openSheet(currentStop.sheet);
+          }}
+          onExitTour={exitTour}
         />
       )}
 
-      {!viewerActive && <Minimap numRooms={numRooms} poseRef={poseRef} />}
+      {!viewerActive && (
+        <Minimap numRooms={numRooms} poseRef={poseRef} guidePoseRef={tourMode ? dakPoseRef : undefined} />
+      )}
 
       <WelcomeOverlay
         title={exhibitTitle ?? "The Gallery"}

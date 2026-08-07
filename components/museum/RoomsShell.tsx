@@ -88,6 +88,7 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile }: Roo
   const half = ROOM_SIZE / 2;
 
   const placements = getFramePlacements(rooms);
+  const hasFeaturedSheets = rooms.some((room) => room.sheets.some((sheet) => sheet.featured));
   const matDepth = 2.5;
   const matZ = entryWallZ(0) + matDepth / 2;
   const taglinePosterZ = entryWallZ(0) + 3.5;
@@ -161,6 +162,7 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile }: Roo
       <ModeChoicePoster
         position={[half - 0.05, ROOM_HEIGHT / 2, modePosterZ]}
         rotationY={-Math.PI / 2}
+        hasFeaturedSheets={hasFeaturedSheets}
       />
       <BackWallWelcomePoster
         position={[-half + 0.05, ROOM_HEIGHT / 2, welcomePosterZ]}

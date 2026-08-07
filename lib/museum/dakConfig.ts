@@ -28,6 +28,13 @@ export const DAK_BOB_PERIOD_SECONDS = 3.4;
 export const DAK_GREETING_ENTRY_DELAY_MS = 1200; // after `entered`, before Dak greets
 export const DAK_GREETING_DURATION_MS = 5000; // how long the greeting bubble stays up
 
+// Guided tour (Phase 5) - Dak's own walking pace, deliberately a touch
+// slower than the visitor's own walk speed (roomConstants.WALK_SPEED),
+// since he's leading rather than racing ahead.
+export const DAK_WALK_SPEED = 2.2;
+export const DAK_TOUR_DWELL_MS = 7000; // how long Dak lingers at a stop before moving on
+export const DAK_TOUR_ARRIVE_THRESHOLD = 0.15;
+
 // Restrained heritage palette (section 4) - reuses the museum's existing
 // brand accents (antique gold, forest green) where they already fit, so
 // Dak reads as part of the same world rather than a separate art style.
