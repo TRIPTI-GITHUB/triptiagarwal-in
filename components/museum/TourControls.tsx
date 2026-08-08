@@ -9,17 +9,19 @@ interface TourControlsProps {
 
 /**
  * TourControls
- * Top-right mode toggle. While exploring freely, offers "Continue as
- * Guided Tour" - picking up the tour from whichever stop is nearest to
- * the visitor's current position (section 6), never restarting from the
- * entrance. While touring, this is "Skip tour, explore freely" (section
- * 5) - always visible, exits immediately without touching the visitor's
+ * Mode toggle - the buttons only, no positioning of its own, so a
+ * parent can group it with other top-bar controls (e.g. TeleportMenu)
+ * in one row. While exploring freely, offers "Continue as Guided Tour"
+ * - picking up the tour from whichever stop is nearest to the visitor's
+ * current position (section 6), never restarting from the entrance.
+ * While touring, this is "Skip tour, explore freely" (section 5) -
+ * always visible, exits immediately without touching the visitor's
  * position, since the camera was never hijacked to begin with. The
  * stubbed narration-audio toggle sits alongside it, tour mode only.
  */
 export function TourControls({ tourMode, onToggleMode }: TourControlsProps) {
   return (
-    <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+    <>
       {tourMode && <TourAudioToggle />}
       <button
         onClick={onToggleMode}
@@ -27,6 +29,6 @@ export function TourControls({ tourMode, onToggleMode }: TourControlsProps) {
       >
         {tourMode ? "Skip Tour, Explore Freely" : "Continue as Guided Tour"}
       </button>
-    </div>
+    </>
   );
 }

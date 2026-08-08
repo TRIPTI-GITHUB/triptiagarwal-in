@@ -34,6 +34,18 @@ export function foyerFrontZ(): number {
   return entryWallZ(0) + FOYER_DEPTH;
 }
 
+/**
+ * Where a visitor spawns/returns to in the lobby - shared by the
+ * Canvas's initial camera position and the teleport menu's "Lobby"
+ * destination (Phase 6a), so the two can never drift apart.
+ */
+export function lobbySpawnPosition(): [number, number, number] {
+  return [0, EYE_HEIGHT, foyerFrontZ() - 1.5];
+}
+export function lobbySpawnLookAt(): [number, number, number] {
+  return [0, EYE_HEIGHT, entryWallZ(0)];
+}
+
 /** Total length of the whole hall, given how many rooms it has. */
 export function totalHallLength(numRooms: number): number {
   return numRooms * ROOM_SIZE;
@@ -231,6 +243,12 @@ export interface TourStop {
   position: [number, number, number];
   lookAt: [number, number, number];
   sheet?: ExhibitSheet;
+  // Sheet stops only - the frame's own facing, for orienting a focus
+  // indicator flush against the wall (FocusIndicator, Phase 6a).
+  rotationY?: number;
+  // Doorway stops only - which room this doorway leads into, for
+  // labeling it in keyboard-nav announcements and the teleport menu.
+  roomTitle?: string;
 }
 
 export interface TourPath {
@@ -282,6 +300,7 @@ export function buildTourPath(rooms: MuseumRoom[], scope: TourScope): TourPath {
         type: "doorway",
         position: [0, EYE_HEIGHT, entryWallZ(roomIndex)],
         lookAt: [0, EYE_HEIGHT, roomCenterZ(roomIndex)],
+        roomTitle: room.title,
       });
     }
 
@@ -299,6 +318,7 @@ export function buildTourPath(rooms: MuseumRoom[], scope: TourScope): TourPath {
         sheet: p.sheet,
         position: [p.x + normalX * TOUR_STANDOFF, EYE_HEIGHT, p.z + normalZ * TOUR_STANDOFF],
         lookAt: [p.x, FRAME_Y, p.z],
+        rotationY: p.rotationY,
       });
 
       if (scope === "full" || p.sheet.featured) {
@@ -355,4 +375,37 @@ export function buildSheetLabels(rooms: MuseumRoom[]): Map<string, string> {
   });
 
   return labels;
+}
+
+/**
+ * buildPointsOfInterest
+ * The keyboard-navigation and screen-reader traversal list (Phase 6a,
+ * section 13's "tab-based movement between points of interest - each
+ * exhibit sheet, each doorway"). Reuses buildTourPath's already
+ * spatially-ordered stop sequence (sheets in display order per room,
+ * then the doorway into the next room) rather than building a second
+ * room graph - 'full' scope, since accessibility traversal must reach
+ * every sheet regardless of which are curated as `featured` for the
+ * guided tour. The entrance stop is dropped - it's not a sheet or a
+ * doorway, so it isn't one of the two point types this feature covers.
+ */
+export function buildPointsOfInterest(rooms: MuseumRoom[]): TourStop[] {
+  return buildTourPath(rooms, "full").stops.filter((stop) => stop.type !== "entrance");
+}
+
+/**
+ * describePoint
+ * Human-readable label for a point of interest, used for both the
+ * on-screen focus caption and the aria-live announcement on every Tab
+ * (section 13's screen-reader basics).
+ */
+export function describePoint(stop: TourStop, sheetLabels: Map<string, string>): string {
+  if (stop.type === "sheet" && stop.sheet) {
+    const label = sheetLabels.get(stop.sheet.id) ?? "Exhibit sheet";
+    return stop.sheet.heading ? label + ": " + stop.sheet.heading : label;
+  }
+  if (stop.type === "doorway") {
+    return stop.roomTitle ? "Doorway to " + stop.roomTitle : "Doorway";
+  }
+  return "Point of interest";
 }

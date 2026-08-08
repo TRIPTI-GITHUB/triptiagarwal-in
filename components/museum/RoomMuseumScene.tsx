@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { Canvas } from "@react-three/fiber";
 import { RoomsShell } from "@/components/museum/RoomsShell";
 import { RoomFreeRoam } from "@/components/museum/RoomFreeRoam";
@@ -21,6 +21,10 @@ import { ApproachCue } from "@/components/museum/ApproachCue";
 import { DakCompanion, type DakLivePose } from "@/components/museum/DakCompanion";
 import { DakDialogueBubble } from "@/components/museum/DakDialogueBubble";
 import { DakToggle } from "@/components/museum/DakToggle";
+import { KeyboardPointNav } from "@/components/museum/KeyboardPointNav";
+import { FocusIndicator } from "@/components/museum/FocusIndicator";
+import { TeleportExecutor, type TeleportTarget } from "@/components/museum/TeleportExecutor";
+import { TeleportMenu, type TeleportDestination } from "@/components/museum/TeleportMenu";
 import type { MuseumModeChoice } from "@/components/museum/ModeChoicePoster";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
 import {
@@ -42,7 +46,10 @@ import {
 import {
   buildTourPath,
   buildSheetLabels,
+  describePoint,
   findNearestNavIndex,
+  lobbySpawnPosition,
+  lobbySpawnLookAt,
   roomCenterZ,
   foyerFrontZ,
   getFramePlacements,
@@ -113,6 +120,17 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
   const dakRevertTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const numRooms = rooms.length;
 
+  // Keyboard point-of-interest navigation + teleport (section 13,
+  // Phase 6a). `focusedPoi` is an index into `pointsOfInterest` (below);
+  // `keyboardMoveTarget` is only set while an eased Enter/Space move is
+  // in flight; `teleportTarget` triggers an instant, unanimated jump.
+  const [focusedPoi, setFocusedPoi] = useState<number | null>(null);
+  const [keyboardMoveTarget, setKeyboardMoveTarget] = useState<{
+    position: [number, number, number];
+    lookAt: [number, number, number];
+  } | null>(null);
+  const [teleportTarget, setTeleportTarget] = useState<TeleportTarget | null>(null);
+
   useEffect(() => {
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
@@ -161,6 +179,27 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
   const maxNavIndex = tourPath.navigableIndices.length - 2;
   const targetStopIndex = tourPath.navigableIndices[navIndex + 1] ?? tourPath.navigableIndices[0];
   const currentStop = tourMode ? tourPath.stops[targetStopIndex] : undefined;
+
+  // tourPath.stops doesn't depend on scope (only navigableIndices does -
+  // every sheet always gets a stop) so it's already the exact sequence
+  // Phase 6a needs; reusing it here avoids building the stop graph a
+  // second time for keyboard nav and teleport.
+  const pointsOfInterest = useMemo(() => tourPath.stops.filter((stop) => stop.type !== "entrance"), [tourPath]);
+  const focusedPoint = focusedPoi !== null ? pointsOfInterest[focusedPoi] ?? null : null;
+
+  const teleportDestinations = useMemo<TeleportDestination[]>(() => {
+    const destinations: TeleportDestination[] = [
+      { label: "Lobby", position: lobbySpawnPosition(), lookAt: lobbySpawnLookAt() },
+    ];
+    tourPath.stops.forEach((stop) => {
+      if (stop.type === "entrance") {
+        destinations.push({ label: rooms[0]?.title ?? "Room 1", position: stop.position, lookAt: stop.lookAt });
+      } else if (stop.type === "doorway" && stop.roomTitle) {
+        destinations.push({ label: stop.roomTitle, position: stop.position, lookAt: stop.lookAt });
+      }
+    });
+    return destinations;
+  }, [tourPath, rooms]);
 
   const viewerActive = selectedSheet !== null;
   const activePlacement = selectedSheet ? placementById.get(selectedSheet.id) : undefined;
@@ -316,9 +355,51 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
     setDakDismissed((d) => !d);
   }
 
+  // Tab/Shift+Tab cycles focus among pointsOfInterest; Enter/Space eases
+  // the camera to whichever point currently has focus; Escape releases
+  // keyboard focus back to the page. Bound on a dedicated focusable
+  // element (not `window`) so it never hijacks Tab from the real
+  // interactive controls (TourControls, TeleportMenu, ExhibitModal's
+  // buttons) - only active while that element itself has focus.
+  function handleSceneKeyDown(e: KeyboardEvent<HTMLDivElement>) {
+    if (viewerActive || pointsOfInterest.length === 0) return;
+
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const count = pointsOfInterest.length;
+      setFocusedPoi((prev) => {
+        if (prev === null) return e.shiftKey ? count - 1 : 0;
+        return (prev + (e.shiftKey ? -1 : 1) + count) % count;
+      });
+    } else if (e.key === "Enter" || e.key === " " || e.key === "Spacebar") {
+      if (focusedPoi === null) return;
+      e.preventDefault();
+      const point = pointsOfInterest[focusedPoi];
+      if (point) setKeyboardMoveTarget({ position: point.position, lookAt: point.lookAt });
+    } else if (e.key === "Escape") {
+      setFocusedPoi(null);
+      setKeyboardMoveTarget(null);
+      e.currentTarget.blur();
+    }
+  }
+
+  function handleKeyboardMoveArrived() {
+    setKeyboardMoveTarget(null);
+  }
+
+  function handleTeleportSelect(destination: TeleportDestination) {
+    setFocusedPoi(null);
+    setKeyboardMoveTarget(null);
+    setTeleportTarget({ position: destination.position, lookAt: destination.lookAt });
+  }
+
+  function handleTeleportDone() {
+    setTeleportTarget(null);
+  }
+
   return (
     <div className="fixed inset-0 z-[60] bg-black">
-      <Canvas camera={{ position: [0, EYE_HEIGHT, foyerFrontZ() - 1.5], fov: 60 }}>
+      <Canvas camera={{ position: lobbySpawnPosition(), fov: 60 }}>
         <fog attach="fog" args={["#3a4552", 9, 32]} />
         <hemisphereLight args={["#ffffff", "#8892a0", 0.55]} />
         <ambientLight intensity={0.55} color="#ffffff" />
@@ -363,6 +444,17 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
           />
         )}
 
+        {focusedPoint && <FocusIndicator point={focusedPoint} />}
+        {keyboardMoveTarget && (
+          <KeyboardPointNav
+            targetPosition={keyboardMoveTarget.position}
+            targetLookAt={keyboardMoveTarget.lookAt}
+            paused={viewerActive}
+            onArrived={handleKeyboardMoveArrived}
+          />
+        )}
+        <TeleportExecutor target={teleportTarget} onDone={handleTeleportDone} />
+
         {isTouch ? (
           <RoomMobileRig
             moveRef={touchMoveRef}
@@ -384,6 +476,34 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
           />
         )}
       </Canvas>
+
+      {/* Dedicated focus target for keyboard point-of-interest nav
+          (section 13) - deliberately not a `window` listener, so Tab
+          only cycles exhibit sheets/doorways while THIS element has
+          focus, never hijacking Tab from the real interactive controls
+          elsewhere in this overlay. pointer-events-none: it exists to
+          be tabbed into, not clicked. */}
+      <div
+        tabIndex={0}
+        role="application"
+        aria-label="Museum keyboard navigation. Press Tab to cycle between exhibit sheets and doorways, Enter or Space to move there, Escape to release keyboard focus."
+        onKeyDown={handleSceneKeyDown}
+        className="absolute inset-0 pointer-events-none outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-brand-gold focus-visible:-outline-offset-4 z-[6]"
+      />
+
+      <div aria-live="polite" className="sr-only">
+        {focusedPoint ? "Focused: " + describePoint(focusedPoint, sheetLabels) : ""}
+      </div>
+
+      {focusedPoint && !viewerActive && (
+        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-10 pointer-events-none">
+          <div className="bg-brand-charcoal/90 backdrop-blur-sm rounded-full px-4 py-1.5 shadow-lg">
+            <p className="text-white text-xs">
+              <span className="text-brand-gold">Focused:</span> {describePoint(focusedPoint, sheetLabels)}
+            </p>
+          </div>
+        </div>
+      )}
 
       <ApproachCue visible={entered && !viewerActive && !tourMode && nearSheet !== null} />
 
@@ -421,14 +541,19 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
       {!isTouch && !viewerActive && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none">
           <p className="text-white/70 text-xs bg-black/50 px-3 py-1 rounded-full">
-            W/S walk - A/D strafe - arrow keys, drag, or buttons to look - click a sheet to view it
+            W/S walk - A/D strafe - arrow keys, drag, or buttons to look - click a sheet to view it - Tab to browse by keyboard
           </p>
         </div>
       )}
 
       {!viewerActive && <RotationArrows turnRef={turnRef} />}
 
-      {!viewerActive && <TourControls tourMode={tourMode} onToggleMode={toggleTourFromControls} />}
+      {!viewerActive && (
+        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <TeleportMenu destinations={teleportDestinations} onSelect={handleTeleportSelect} />
+          <TourControls tourMode={tourMode} onToggleMode={toggleTourFromControls} />
+        </div>
+      )}
 
       {tourMode && !viewerActive && (
         <TourArrowNav onPrev={goPrev} onNext={goNext} atStart={navIndex <= -1} atEnd={navIndex >= maxNavIndex} />
