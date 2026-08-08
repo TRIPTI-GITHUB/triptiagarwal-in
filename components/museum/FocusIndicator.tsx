@@ -13,6 +13,7 @@ const OUTLINE_MARGIN = 0.15;
 
 interface FocusIndicatorProps {
   point: TourStop;
+  reducedMotion?: boolean;
 }
 
 /**
@@ -32,11 +33,13 @@ interface FocusIndicatorProps {
  * plain array of independent instances rather than one shared value
  * threaded through render.
  */
-export function FocusIndicator({ point }: FocusIndicatorProps) {
+export function FocusIndicator({ point, reducedMotion }: FocusIndicatorProps) {
   const materials = useRef<(THREE.MeshBasicMaterial | null)[]>([]);
 
   useFrame(({ clock }) => {
-    const opacity = 0.5 + 0.35 * Math.sin((clock.elapsedTime * Math.PI * 2) / PULSE_PERIOD_SECONDS);
+    const opacity = reducedMotion
+      ? 0.7
+      : 0.5 + 0.35 * Math.sin((clock.elapsedTime * Math.PI * 2) / PULSE_PERIOD_SECONDS);
     materials.current.forEach((material) => {
       if (material) material.opacity = opacity;
     });

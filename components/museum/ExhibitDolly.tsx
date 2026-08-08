@@ -12,6 +12,7 @@ interface ExhibitDollyProps {
   rotationY: number;
   standoff: number;
   returning: boolean;
+  reducedMotion?: boolean;
   onArrived: () => void;
 }
 
@@ -43,6 +44,7 @@ export function ExhibitDolly({
   rotationY,
   standoff,
   returning,
+  reducedMotion,
   onArrived,
 }: ExhibitDollyProps) {
   const { camera } = useThree();
@@ -59,7 +61,7 @@ export function ExhibitDolly({
       lookAtPoint.current = camera.position.clone().add(forward);
     }
 
-    const t = dampedEaseFactor(DOLLY_SPEED, delta);
+    const t = reducedMotion ? 1 : dampedEaseFactor(DOLLY_SPEED, delta);
 
     if (returning) {
       camera.position.lerp(returnPose.current.position, t);

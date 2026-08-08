@@ -32,6 +32,11 @@ interface DakCompanionProps {
   lookAt?: [number, number, number];
   rotationY?: number;
   paused?: boolean;
+  // When true (section 13), position/rotation/scale snap straight to
+  // their targets instead of easing, and the idle bob freezes - the
+  // same "automated moves become instant, idle animation holds still"
+  // treatment KeyboardPointNav and FocusIndicator get.
+  reducedMotion?: boolean;
   // Written every frame with Dak's actual eased position (not his
   // target) - Minimap reads this the same way it reads the visitor's
   // own poseRef, so the guide marker tracks where Dak visibly is.
@@ -65,6 +70,7 @@ export function DakCompanion({
   lookAt,
   rotationY = Math.PI,
   paused,
+  reducedMotion,
   livePoseRef,
   onArrived,
 }: DakCompanionProps) {
@@ -89,7 +95,7 @@ export function DakCompanion({
       notifiedArrival.current = false;
     }
 
-    const posT = dampedEaseFactor(DAK_WALK_SPEED, delta);
+    const posT = reducedMotion ? 1 : dampedEaseFactor(DAK_WALK_SPEED, delta);
     const targetVec = new THREE.Vector3(...position);
     currentPos.current.lerp(targetVec, posT);
 
@@ -98,7 +104,9 @@ export function DakCompanion({
       onArrived();
     }
 
-    const bob = Math.sin((clock.elapsedTime * Math.PI * 2) / DAK_BOB_PERIOD_SECONDS) * DAK_BOB_AMPLITUDE;
+    const bob = reducedMotion
+      ? 0
+      : Math.sin((clock.elapsedTime * Math.PI * 2) / DAK_BOB_PERIOD_SECONDS) * DAK_BOB_AMPLITUDE;
     group.position.set(currentPos.current.x, currentPos.current.y + bob, currentPos.current.z);
 
     const angle = lookAt
@@ -106,10 +114,10 @@ export function DakCompanion({
       : rotationY;
     tmpEuler.current.set(0, angle, 0);
     targetQuat.current.setFromEuler(tmpEuler.current);
-    group.quaternion.slerp(targetQuat.current, dampedEaseFactor(ROTATION_EASE_SPEED, delta));
+    group.quaternion.slerp(targetQuat.current, reducedMotion ? 1 : dampedEaseFactor(ROTATION_EASE_SPEED, delta));
 
     const targetScale = mode === "greeting" ? GREETING_SCALE : 1;
-    const scaleT = dampedEaseFactor(SCALE_EASE_SPEED, delta);
+    const scaleT = reducedMotion ? 1 : dampedEaseFactor(SCALE_EASE_SPEED, delta);
     group.scale.setScalar(THREE.MathUtils.lerp(group.scale.x, targetScale, scaleT));
 
     if (livePoseRef) {

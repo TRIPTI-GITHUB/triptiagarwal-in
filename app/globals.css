@@ -29,3 +29,41 @@ body {
   background-color: var(--color-brand-cream);
   color: var(--color-brand-charcoal);
 }
+
+/* Reduced motion (section 13) — OS-level `prefers-reduced-motion` for
+   every CSS transition/animation on the site (fades, hover states,
+   WelcomeOverlay, dialogue bubbles, etc). The 3D museum's camera and
+   mascot motion is handled separately in JS via useReducedMotion,
+   since it also needs to honor an in-app manual override this media
+   query alone can't express. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* High contrast (section 13) — toggled via SettingsDrawer, which adds
+   this class to <html>. Targets the museum overlay's translucent
+   black/white utility classes, the ones a low-vision or bright-glare
+   visitor would find hardest to read against the 3D scene behind them. */
+.museum-high-contrast .bg-black\/50,
+.museum-high-contrast .bg-black\/60 {
+  background-color: rgba(0, 0, 0, 0.92) !important;
+}
+
+.museum-high-contrast .bg-white\/10 {
+  background-color: rgba(255, 255, 255, 0.3) !important;
+}
+
+.museum-high-contrast .text-white\/40,
+.museum-high-contrast .text-white\/50,
+.museum-high-contrast .text-white\/60,
+.museum-high-contrast .text-white\/70,
+.museum-high-contrast .text-white\/80 {
+  color: #ffffff !important;
+}

@@ -25,8 +25,28 @@ import { KeyboardPointNav } from "@/components/museum/KeyboardPointNav";
 import { FocusIndicator } from "@/components/museum/FocusIndicator";
 import { TeleportExecutor, type TeleportTarget } from "@/components/museum/TeleportExecutor";
 import { TeleportMenu, type TeleportDestination } from "@/components/museum/TeleportMenu";
+import { SettingsDrawer } from "@/components/museum/SettingsDrawer";
 import type { MuseumModeChoice } from "@/components/museum/ModeChoicePoster";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
+import { useReducedMotion } from "@/lib/museum/useReducedMotion";
+import { useSyncedLocalStorage } from "@/lib/museum/useSyncedLocalStorage";
+
+const TEXT_SCALE_VALUES: Record<string, string> = { default: "100%", large: "115%", largest: "130%" };
+const TEXT_SCALE_STORAGE_KEY = "museum-text-scale";
+const CONTRAST_STORAGE_KEY = "museum-high-contrast";
+
+function decodeTextScale(raw: string | null): string {
+  return raw ?? "default";
+}
+function encodeTextScale(value: string): string {
+  return value;
+}
+function decodeContrast(raw: string | null): boolean {
+  return raw === "true";
+}
+function encodeContrast(value: boolean): string {
+  return String(value);
+}
 import {
   ROOM_HEIGHT,
   EYE_HEIGHT,
@@ -130,6 +150,31 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
     lookAt: [number, number, number];
   } | null>(null);
   const [teleportTarget, setTeleportTarget] = useState<TeleportTarget | null>(null);
+
+  const { reducedMotion, systemPreference: systemReducedMotion, override: reducedMotionOverride, setOverride: setReducedMotionOverride } =
+    useReducedMotion();
+  const [textScale, setTextScale] = useSyncedLocalStorage(TEXT_SCALE_STORAGE_KEY, decodeTextScale, encodeTextScale);
+  const [highContrast, setHighContrast] = useSyncedLocalStorage(CONTRAST_STORAGE_KEY, decodeContrast, encodeContrast);
+
+  // Applied here (not in SettingsDrawer) because RoomMuseumScene stays
+  // mounted for the museum page's whole lifetime, while SettingsDrawer
+  // unmounts every time the exhibit vitrine viewer opens - an unmount
+  // cleanup tied to the drawer would strip these the moment a visitor
+  // looked closely at a sheet. Cleanup here only fires when the visitor
+  // actually leaves the museum page.
+  useEffect(() => {
+    document.documentElement.style.fontSize = TEXT_SCALE_VALUES[textScale] ?? TEXT_SCALE_VALUES.default;
+    return () => {
+      document.documentElement.style.fontSize = "";
+    };
+  }, [textScale]);
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("museum-high-contrast", highContrast);
+    return () => {
+      document.documentElement.classList.remove("museum-high-contrast");
+    };
+  }, [highContrast]);
 
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -420,6 +465,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
           position={tourMode && currentStop ? currentStop.position : undefined}
           lookAt={tourMode && currentStop ? currentStop.lookAt : undefined}
           paused={viewerActive}
+          reducedMotion={reducedMotion}
           livePoseRef={dakPoseRef}
           onArrived={handleDakArrived}
         />
@@ -440,16 +486,18 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
             rotationY={activePlacement.rotationY}
             standoff={standoff}
             returning={closingViewer}
+            reducedMotion={reducedMotion}
             onArrived={handleDollyArrived}
           />
         )}
 
-        {focusedPoint && <FocusIndicator point={focusedPoint} />}
+        {focusedPoint && <FocusIndicator point={focusedPoint} reducedMotion={reducedMotion} />}
         {keyboardMoveTarget && (
           <KeyboardPointNav
             targetPosition={keyboardMoveTarget.position}
             targetLookAt={keyboardMoveTarget.lookAt}
             paused={viewerActive}
+            reducedMotion={reducedMotion}
             onArrived={handleKeyboardMoveArrived}
           />
         )}
@@ -552,6 +600,15 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
         <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
           <TeleportMenu destinations={teleportDestinations} onSelect={handleTeleportSelect} />
           <TourControls tourMode={tourMode} onToggleMode={toggleTourFromControls} />
+          <SettingsDrawer
+            reducedMotionOverride={reducedMotionOverride}
+            systemReducedMotion={systemReducedMotion}
+            onSetReducedMotionOverride={setReducedMotionOverride}
+            textScale={textScale}
+            onSetTextScale={setTextScale}
+            highContrast={highContrast}
+            onSetHighContrast={setHighContrast}
+          />
         </div>
       )}
 

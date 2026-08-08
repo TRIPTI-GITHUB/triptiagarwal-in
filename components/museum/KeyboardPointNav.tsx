@@ -12,6 +12,7 @@ interface KeyboardPointNavProps {
   targetPosition: [number, number, number];
   targetLookAt: [number, number, number];
   paused?: boolean;
+  reducedMotion?: boolean;
   onArrived: () => void;
 }
 
@@ -27,7 +28,13 @@ interface KeyboardPointNavProps {
  * deliberately instant for vestibular-sensitivity reasons, this one is
  * meant to be felt.
  */
-export function KeyboardPointNav({ targetPosition, targetLookAt, paused, onArrived }: KeyboardPointNavProps) {
+export function KeyboardPointNav({
+  targetPosition,
+  targetLookAt,
+  paused,
+  reducedMotion,
+  onArrived,
+}: KeyboardPointNavProps) {
   const { camera } = useThree();
   const lookAtPoint = useRef<THREE.Vector3 | null>(null);
   const arrivedRef = useRef(false);
@@ -42,7 +49,7 @@ export function KeyboardPointNav({ targetPosition, targetLookAt, paused, onArriv
   useFrame((_, delta) => {
     if (paused || arrivedRef.current || !lookAtPoint.current) return;
 
-    const t = dampedEaseFactor(MOVE_SPEED, delta);
+    const t = reducedMotion ? 1 : dampedEaseFactor(MOVE_SPEED, delta);
     const targetPos = new THREE.Vector3(...targetPosition);
     camera.position.lerp(targetPos, t);
     lookAtPoint.current.lerp(new THREE.Vector3(...targetLookAt), t);
