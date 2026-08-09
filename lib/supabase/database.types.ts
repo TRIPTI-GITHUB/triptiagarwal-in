@@ -5,6 +5,21 @@
  * maintained by hand — not necessary yet at this project size.)
  */
 
+/**
+ * AboutPhotoRole
+ * Mirrors the shape stored in profiles.about_photos (Design Doc:
+ * /about-scrapbook draft page) - "hero" for the top portrait, one
+ * "supporting" photo in the Story zone, "ceremony" for the (up to two)
+ * overlapping polaroids in the Recognition zone.
+ */
+export type AboutPhotoRole = "hero" | "supporting" | "ceremony";
+
+export interface AboutPhoto {
+  url: string;
+  alt: string;
+  role: AboutPhotoRole;
+}
+
 export interface Profile {
   id: string;
   full_name: string;
@@ -13,6 +28,14 @@ export interface Profile {
   avatar_url: string | null;
   created_at: string;
   updated_at: string;
+  // Added for the /about-scrapbook draft page only - all nullable, no
+  // effect on the existing /about page's query or rendering.
+  tagline: string | null;
+  what_i_love_doing: string[] | null;
+  accolades: string[] | null;
+  about_photos: AboutPhoto[] | null;
+  contact_phone: string | null;
+  contact_email: string | null;
 }
 
 export interface Post {
