@@ -20,13 +20,18 @@ interface MinimapProps {
 const PAD = 1;
 const UPDATE_INTERVAL_MS = 100;
 
+const PARCHMENT_FILL = "#C9BBA0";
+const INK_COLOR = "#3A2E1F";
+
 /**
  * Minimap
- * Small top-down floor plan overlay (bottom-right corner). Oriented
- * so Room 1 (the entrance) sits at the BOTTOM of the map and the
- * final room sits at the TOP - matching the direction you actually
- * walk (deeper into the gallery = further up the map), rather than
- * an arbitrary top-to-bottom room order.
+ * Small top-down floor plan overlay (bottom-right corner), styled as
+ * an aged-parchment map fragment (warm tan floor, dark ink lines)
+ * rather than a flat dark rectangle, per the Phase 1 visual proposal's
+ * UI Overlay Strategy. Oriented so Room 1 (the entrance) sits at the
+ * BOTTOM of the map and the final room sits at the TOP - matching the
+ * direction you actually walk (deeper into the gallery = further up
+ * the map), rather than an arbitrary top-to-bottom room order.
  */
 export function Minimap({ numRooms, poseRef, guidePoseRef }: MinimapProps) {
   const [pose, setPose] = useState<MinimapPose>({ x: 0, z: ROOM_SIZE, facingX: 0, facingZ: -1 });
@@ -88,7 +93,7 @@ export function Minimap({ numRooms, poseRef, guidePoseRef }: MinimapProps) {
   const viewBox = `${-half - PAD} ${-PAD} ${ROOM_SIZE + PAD * 2} ${depth + PAD * 2}`;
 
   return (
-    <div className="absolute bottom-6 right-6 w-36 sm:w-44 bg-black/60 rounded-lg p-2 z-10 pointer-events-none">
+    <div className="absolute bottom-6 right-6 w-36 sm:w-44 bg-black/60 border border-brand-gold/30 rounded-lg p-2 z-10 pointer-events-none">
       <svg viewBox={viewBox} className="w-full h-auto" style={{ maxHeight: 220 }}>
         {Array.from({ length: numRooms }).map((_, i) => (
           <rect
@@ -97,13 +102,13 @@ export function Minimap({ numRooms, poseRef, guidePoseRef }: MinimapProps) {
             y={roomTopY(i)}
             width={ROOM_SIZE}
             height={ROOM_SIZE}
-            fill="#3a3226"
-            opacity={0.5}
+            fill={PARCHMENT_FILL}
+            opacity={0.9}
           />
         ))}
 
-        <line x1={-half} y1={0} x2={-half} y2={depth} stroke="#e8e2d5" strokeWidth={0.1} />
-        <line x1={half} y1={0} x2={half} y2={depth} stroke="#e8e2d5" strokeWidth={0.1} />
+        <line x1={-half} y1={0} x2={-half} y2={depth} stroke={INK_COLOR} strokeWidth={0.1} />
+        <line x1={half} y1={0} x2={half} y2={depth} stroke={INK_COLOR} strokeWidth={0.1} />
 
         {wallLineYs.map((y, i) => (
           <g key={"wall-" + i}>
@@ -112,7 +117,7 @@ export function Minimap({ numRooms, poseRef, guidePoseRef }: MinimapProps) {
               y1={y}
               x2={-DOOR_WIDTH / 2}
               y2={y}
-              stroke="#e8e2d5"
+              stroke={INK_COLOR}
               strokeWidth={0.1}
             />
             <line
@@ -120,7 +125,7 @@ export function Minimap({ numRooms, poseRef, guidePoseRef }: MinimapProps) {
               y1={y}
               x2={half}
               y2={y}
-              stroke="#e8e2d5"
+              stroke={INK_COLOR}
               strokeWidth={0.1}
             />
           </g>
@@ -132,7 +137,7 @@ export function Minimap({ numRooms, poseRef, guidePoseRef }: MinimapProps) {
             x={0}
             y={roomTopY(i) + ROOM_SIZE / 2}
             fontSize={0.6}
-            fill="#f5f0e6"
+            fill={INK_COLOR}
             textAnchor="middle"
             dominantBaseline="middle"
           >

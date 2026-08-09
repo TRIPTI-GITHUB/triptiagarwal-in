@@ -27,6 +27,7 @@ import { TeleportExecutor, type TeleportTarget } from "@/components/museum/Telep
 import { TeleportMenu, type TeleportDestination } from "@/components/museum/TeleportMenu";
 import { SettingsDrawer } from "@/components/museum/SettingsDrawer";
 import { CeilingFixture } from "@/components/museum/CeilingFixture";
+import { ReturnToLobbyButton } from "@/components/museum/ReturnToLobbyButton";
 import type { MuseumModeChoice } from "@/components/museum/ModeChoicePoster";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
 import { useReducedMotion } from "@/lib/museum/useReducedMotion";
@@ -444,6 +445,24 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
     setTeleportTarget(null);
   }
 
+  function handleReturnToLobby() {
+    setFocusedPoi(null);
+    setKeyboardMoveTarget(null);
+    setTeleportTarget({ position: lobbySpawnPosition(), lookAt: lobbySpawnLookAt() });
+  }
+
+  // Home key - "one action away" (Museum Navigation, section 3),
+  // global rather than scoped to the dedicated keyboard-nav element so
+  // it works regardless of what currently has focus.
+  useEffect(() => {
+    function handleHomeKey(e: globalThis.KeyboardEvent) {
+      if (e.key !== "Home" || viewerActive) return;
+      handleReturnToLobby();
+    }
+    window.addEventListener("keydown", handleHomeKey);
+    return () => window.removeEventListener("keydown", handleHomeKey);
+  }, [viewerActive]);
+
   return (
     <div className="fixed inset-0 z-[60] bg-black">
       <Canvas camera={{ position: lobbySpawnPosition(), fov: 60 }}>
@@ -603,7 +622,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
       {!isTouch && !viewerActive && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none">
           <p className="text-white/70 text-xs bg-black/50 px-3 py-1 rounded-full">
-            W/S walk - A/D strafe - arrow keys, drag, or buttons to look - click a sheet to view it - Tab to browse by keyboard
+            W/S walk - A/D strafe - arrow keys, drag, or buttons to look - click a sheet to view it - Tab to browse by keyboard - Home to return to lobby
           </p>
         </div>
       )}
@@ -612,6 +631,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
 
       {!viewerActive && (
         <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+          <ReturnToLobbyButton onReturn={handleReturnToLobby} />
           <TeleportMenu destinations={teleportDestinations} onSelect={handleTeleportSelect} />
           <TourControls tourMode={tourMode} onToggleMode={toggleTourFromControls} />
           <SettingsDrawer
