@@ -28,6 +28,8 @@ import { TeleportMenu, type TeleportDestination } from "@/components/museum/Tele
 import { SettingsDrawer } from "@/components/museum/SettingsDrawer";
 import { CeilingFixture } from "@/components/museum/CeilingFixture";
 import { ReturnToLobbyButton } from "@/components/museum/ReturnToLobbyButton";
+import { FrontDeskSearch } from "@/components/museum/FrontDeskSearch";
+import { OrientationPrompt } from "@/components/museum/OrientationPrompt";
 import type { MuseumModeChoice } from "@/components/museum/ModeChoicePoster";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
 import { useReducedMotion } from "@/lib/museum/useReducedMotion";
@@ -78,6 +80,7 @@ import {
   getFramePlacements,
   type MuseumRoom,
   type TourScope,
+  type TourStop,
 } from "@/lib/museum/layout";
 import type { ExhibitSheet, Profile } from "@/lib/supabase/database.types";
 
@@ -451,6 +454,12 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
     setTeleportTarget({ position: lobbySpawnPosition(), lookAt: lobbySpawnLookAt() });
   }
 
+  function handleSearchSelect(stop: TourStop) {
+    setFocusedPoi(null);
+    setKeyboardMoveTarget(null);
+    setTeleportTarget({ position: stop.position, lookAt: stop.lookAt });
+  }
+
   // Home key - "one action away" (Museum Navigation, section 3),
   // global rather than scoped to the dedicated keyboard-nav element so
   // it works regardless of what currently has focus.
@@ -465,7 +474,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
 
   return (
     <div className="fixed inset-0 z-[60] bg-black">
-      <Canvas camera={{ position: lobbySpawnPosition(), fov: 60 }}>
+      <Canvas camera={{ position: lobbySpawnPosition(), fov: isTouch ? 52 : 60 }}>
         <fog attach="fog" args={highContrast ? ["#8892a0", 12, 40] : ["#241F1A", 8, 26]} />
         <hemisphereLight args={highContrast ? ["#ffffff", "#8892a0", 0.75] : ["#F2EDE3", "#3A342C", 0.35]} />
         <ambientLight intensity={highContrast ? 0.75 : 0.3} color={highContrast ? "#ffffff" : "#F2EDE3"} />
@@ -481,7 +490,11 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
                 distance={15}
                 decay={1.5}
               />
-              <CeilingFixture position={lightPosition} glowColor={mood.color} highContrast={highContrast} />
+              {/* Fixture geometry is decorative - skipped on mobile
+                  ("simplified geometry", section 12); the light itself
+                  stays, since the room's mood is core character, not
+                  flourish. */}
+              {!isTouch && <CeilingFixture position={lightPosition} glowColor={mood.color} highContrast={highContrast} />}
             </group>
           );
         })}
@@ -491,6 +504,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
           exhibitTagline={exhibitTagline}
           profile={profile}
           highContrast={highContrast}
+          isTouch={isTouch}
         />
         <MinimapTracker poseRef={poseRef} />
         <DakCompanion
@@ -499,6 +513,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
           lookAt={tourMode && currentStop ? currentStop.lookAt : undefined}
           paused={viewerActive}
           reducedMotion={reducedMotion}
+          idleAnimationDisabled={isTouch}
           livePoseRef={dakPoseRef}
           onArrived={handleDakArrived}
         />
@@ -524,7 +539,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
           />
         )}
 
-        {focusedPoint && <FocusIndicator point={focusedPoint} reducedMotion={reducedMotion} />}
+        {focusedPoint && <FocusIndicator point={focusedPoint} reducedMotion={reducedMotion || isTouch} />}
         {keyboardMoveTarget && (
           <KeyboardPointNav
             targetPosition={keyboardMoveTarget.position}
@@ -588,6 +603,8 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
 
       <ApproachCue visible={entered && !viewerActive && !tourMode && nearSheet !== null} />
 
+      {entered && !viewerActive && <OrientationPrompt isTouch={isTouch} />}
+
       {!viewerActive && !tourMode && (
         <>
           <DakDialogueBubble
@@ -630,8 +647,14 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
       {!viewerActive && <RotationArrows turnRef={turnRef} />}
 
       {!viewerActive && (
-        <div className="absolute top-4 right-4 z-10 flex items-center gap-2">
+        <div className="absolute top-4 right-4 left-4 sm:left-auto z-10 flex flex-wrap items-center justify-end gap-2">
           <ReturnToLobbyButton onReturn={handleReturnToLobby} />
+          <FrontDeskSearch
+            points={pointsOfInterest}
+            sheetLabels={sheetLabels}
+            onSelect={handleSearchSelect}
+            isTouch={isTouch}
+          />
           <TeleportMenu destinations={teleportDestinations} onSelect={handleTeleportSelect} />
           <TourControls tourMode={tourMode} onToggleMode={toggleTourFromControls} />
           <SettingsDrawer

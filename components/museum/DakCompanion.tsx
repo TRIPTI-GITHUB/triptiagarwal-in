@@ -37,6 +37,13 @@ interface DakCompanionProps {
   // same "automated moves become instant, idle animation holds still"
   // treatment KeyboardPointNav and FocusIndicator get.
   reducedMotion?: boolean;
+  // Mobile "simplified geometry" (section 12) - freezes only the idle
+  // bob, unlike `reducedMotion` above which also collapses the walk/
+  // rotation/scale easing. Kept separate deliberately: section 11's
+  // animation strategy requires core navigation/interaction animation
+  // (Dak physically walking a guided tour) to stay intact on mobile -
+  // only decorative/idle animation degrades.
+  idleAnimationDisabled?: boolean;
   // Written every frame with Dak's actual eased position (not his
   // target) - Minimap reads this the same way it reads the visitor's
   // own poseRef, so the guide marker tracks where Dak visibly is.
@@ -71,6 +78,7 @@ export function DakCompanion({
   rotationY = Math.PI,
   paused,
   reducedMotion,
+  idleAnimationDisabled,
   livePoseRef,
   onArrived,
 }: DakCompanionProps) {
@@ -104,9 +112,10 @@ export function DakCompanion({
       onArrived();
     }
 
-    const bob = reducedMotion
-      ? 0
-      : Math.sin((clock.elapsedTime * Math.PI * 2) / DAK_BOB_PERIOD_SECONDS) * DAK_BOB_AMPLITUDE;
+    const bob =
+      reducedMotion || idleAnimationDisabled
+        ? 0
+        : Math.sin((clock.elapsedTime * Math.PI * 2) / DAK_BOB_PERIOD_SECONDS) * DAK_BOB_AMPLITUDE;
     group.position.set(currentPos.current.x, currentPos.current.y + bob, currentPos.current.z);
 
     const angle = lookAt

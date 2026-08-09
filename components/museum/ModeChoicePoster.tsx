@@ -19,6 +19,7 @@ interface ModeChoicePosterProps {
   rotationY: number;
   hasFeaturedSheets: boolean;
   highContrast?: boolean;
+  isTouch?: boolean;
 }
 
 interface OptionButtonProps {
@@ -29,20 +30,33 @@ interface OptionButtonProps {
   sublabel: string;
   disabled?: boolean;
   highContrast?: boolean;
+  // Mobile emphasis (section 12): "Guided Tour becomes the encouraged
+  // default on mobile" - `highlighted` adds a brighter gold ring and a
+  // small "Recommended" tag to Quick Look/Full Tour, `muted` dims
+  // Explore Freely slightly. A nudge, not a restriction - all three
+  // options stay exactly as clickable as before.
+  highlighted?: boolean;
+  muted?: boolean;
 }
 
-function OptionButton({ y, mode, icon, label, sublabel, disabled, highContrast }: OptionButtonProps) {
+function OptionButton({ y, mode, icon, label, sublabel, disabled, highContrast, highlighted, muted }: OptionButtonProps) {
   // Panels stay dark in both modes - see ModeChoicePoster's note on why
   // high contrast pushes trim/text to more saturated extremes instead
   // of inverting the panel to a pale background.
   const trim = highContrast ? HIGH_CONTRAST_TRIM : MUSEUM_GOLD;
-  const panelColor = disabled ? "#3A4552" : MUSEUM_TEAL_LIGHT;
+  const panelColor = disabled ? "#3A4552" : muted ? "#2A4245" : MUSEUM_TEAL_LIGHT;
   const innerColor = disabled ? "#2C3440" : MUSEUM_TEAL;
-  const textColor = disabled ? "#8A93A0" : trim;
-  const sublabelColor = disabled ? "#8A93A0" : highContrast ? "#FFFFFF" : MUSEUM_OFFWHITE;
+  const textColor = disabled ? "#8A93A0" : muted ? "#C9BBA0" : trim;
+  const sublabelColor = disabled ? "#8A93A0" : highContrast ? "#FFFFFF" : muted ? "#C9BBA0" : MUSEUM_OFFWHITE;
 
   return (
     <group position={[0, y, 0.02]}>
+      {highlighted && (
+        <mesh position={[0, 0, -0.008]} raycast={noRaycast}>
+          <planeGeometry args={[2.76, 0.94]} />
+          <meshStandardMaterial color={trim} roughness={0.35} metalness={0.3} />
+        </mesh>
+      )}
       <mesh userData={disabled ? undefined : { isModeOption: true, mode }}>
         <planeGeometry args={[2.6, 0.78]} />
         <meshStandardMaterial color={panelColor} />
@@ -51,6 +65,19 @@ function OptionButton({ y, mode, icon, label, sublabel, disabled, highContrast }
         <planeGeometry args={[2.48, 0.66]} />
         <meshStandardMaterial color={innerColor} />
       </mesh>
+      {highlighted && (
+        <Text
+          position={[0, 0.31, 0.02]}
+          fontSize={0.09}
+          letterSpacing={0.1}
+          color={trim}
+          anchorX="center"
+          anchorY="middle"
+          raycast={noRaycast}
+        >
+          RECOMMENDED
+        </Text>
+      )}
       <Text
         position={[0, 0.16, 0.02]}
         font={PLAYFAIR_FONT}
@@ -87,7 +114,7 @@ function OptionButton({ y, mode, icon, label, sublabel, disabled, highContrast }
  * mesh underneath them, never getting silently absorbed by the text
  * itself.
  */
-export function ModeChoicePoster({ position, rotationY, hasFeaturedSheets, highContrast }: ModeChoicePosterProps) {
+export function ModeChoicePoster({ position, rotationY, hasFeaturedSheets, highContrast, isTouch }: ModeChoicePosterProps) {
   const trim = highContrast ? HIGH_CONTRAST_TRIM : MUSEUM_GOLD;
   const panel = MUSEUM_TEAL;
   const heading = highContrast ? "#FFFFFF" : MUSEUM_OFFWHITE;
@@ -135,6 +162,7 @@ export function ModeChoicePoster({ position, rotationY, hasFeaturedSheets, highC
         sublabel={hasFeaturedSheets ? "The highlights, curated" : "Coming soon"}
         disabled={!hasFeaturedSheets}
         highContrast={highContrast}
+        highlighted={isTouch && hasFeaturedSheets}
       />
       <OptionButton
         y={-0.4}
@@ -143,6 +171,7 @@ export function ModeChoicePoster({ position, rotationY, hasFeaturedSheets, highC
         label="Full Tour"
         sublabel="See every sheet, in order"
         highContrast={highContrast}
+        highlighted={isTouch}
       />
       <OptionButton
         y={-1.3}
@@ -151,6 +180,7 @@ export function ModeChoicePoster({ position, rotationY, hasFeaturedSheets, highC
         label="Explore Freely"
         sublabel="Wander at your own pace"
         highContrast={highContrast}
+        muted={isTouch}
       />
     </group>
   );

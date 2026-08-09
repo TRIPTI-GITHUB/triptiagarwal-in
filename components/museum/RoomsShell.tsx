@@ -45,6 +45,7 @@ interface RoomsShellProps {
   exhibitTagline?: string;
   profile?: Profile | null;
   highContrast?: boolean;
+  isTouch?: boolean;
 }
 
 const BASEBOARD_HEIGHT = 0.22;
@@ -129,7 +130,7 @@ function Pillar({ x, z, pillarColor, capColor }: { x: number; z: number; pillarC
  * beside every doorway, and every room's floor, ceiling, walls,
  * baseboard/moulding trim, and mounted sheets.
  */
-export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile, highContrast }: RoomsShellProps) {
+export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile, highContrast, isTouch }: RoomsShellProps) {
   const numRooms = rooms.length;
   const frontZ = foyerFrontZ();
   const backZ = exitWallZ(numRooms - 1);
@@ -266,6 +267,7 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile, highC
         rotationY={-Math.PI / 2}
         hasFeaturedSheets={hasFeaturedSheets}
         highContrast={highContrast}
+        isTouch={isTouch}
       />
       <BackWallWelcomePoster
         position={[-half + 0.05, ROOM_HEIGHT / 2, welcomePosterZ]}
@@ -327,6 +329,7 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile, highC
           position={[p.x, p.y, p.z]}
           rotationY={p.rotationY}
           highContrast={highContrast}
+          simplified={isTouch}
         />
       ))}
     </group>

@@ -4,7 +4,7 @@ import { useEffect, MutableRefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import * as THREE from "three";
 import { moveCameraInRooms } from "@/lib/museum/roomMovement";
-import { TURN_SPEED, MAX_INTERACT_DISTANCE } from "@/lib/museum/roomConstants";
+import { TURN_SPEED } from "@/lib/museum/roomConstants";
 import type { MuseumModeChoice } from "@/components/museum/ModeChoicePoster";
 import type { ExhibitSheet } from "@/lib/supabase/database.types";
 
@@ -27,6 +27,13 @@ interface RoomMobileRigProps {
  * Client Component - mobile counterpart to RoomFreeRoam. A pending
  * tap (from TouchLookArea) is raycast the same way: checks for
  * isExhibitFrame (sheet selection) or isModeOption (mode selection).
+ *
+ * Unlike desktop, a sheet tap is NOT gated by MAX_INTERACT_DISTANCE -
+ * "fine-grained spatial approach is harder to execute accurately via
+ * touch" (Mobile Adaptation, section 12), so tapping any visible sheet
+ * opens it directly rather than requiring the visitor to first walk
+ * within range. RoomFreeRoam (desktop) keeps the distance gate exactly
+ * as it was.
  */
 export function RoomMobileRig({
   moveRef,
@@ -80,7 +87,7 @@ export function RoomMobileRig({
       const closest = hits[0];
 
       if (closest && closest.object.userData) {
-        if (closest.object.userData.isExhibitFrame && closest.distance < MAX_INTERACT_DISTANCE) {
+        if (closest.object.userData.isExhibitFrame) {
           onSelectSheet(closest.object.userData.sheet as ExhibitSheet);
         } else if (closest.object.userData.isModeOption) {
           onSelectMode(closest.object.userData.mode as MuseumModeChoice);

@@ -39,6 +39,12 @@ interface RoomFrameProps {
   position: [number, number, number];
   rotationY: number;
   highContrast?: boolean;
+  // Mobile "simplified geometry" (Mobile Adaptation, section 12) - the
+  // vitrine glass sheen is a decorative transparent overlay, one extra
+  // draw call per sheet; skipping it on touch devices trims overdraw
+  // without touching anything a visitor actually reads (heading,
+  // plaque, curator's-note tell all stay).
+  simplified?: boolean;
 }
 
 /**
@@ -60,7 +66,7 @@ interface RoomFrameProps {
  * reaches the tagged image/frame mesh beneath them - none of this
  * decoration is itself clickable.
  */
-export function RoomFrame({ sheet, position, rotationY, highContrast }: RoomFrameProps) {
+export function RoomFrame({ sheet, position, rotationY, highContrast, simplified }: RoomFrameProps) {
   const isAward = sheet.category === "award";
   const hasCuratorNote = !!sheet.curator_note;
 
@@ -119,11 +125,14 @@ export function RoomFrame({ sheet, position, rotationY, highContrast }: RoomFram
 
       {/* Vitrine glass hint - a faint tinted sheen over the image,
           evoking protective glass without a real glass shader's
-          reflection cost */}
-      <mesh position={[0, 0, 0.035]} raycast={noRaycast}>
-        <planeGeometry args={[FRAME_WIDTH - 0.3, FRAME_HEIGHT - 0.3]} />
-        <meshStandardMaterial color={VITRINE_GLASS_COLOR} transparent opacity={0.06} depthWrite={false} />
-      </mesh>
+          reflection cost. Skipped on mobile (`simplified`) - purely
+          decorative, one fewer transparent draw call per sheet. */}
+      {!simplified && (
+        <mesh position={[0, 0, 0.035]} raycast={noRaycast}>
+          <planeGeometry args={[FRAME_WIDTH - 0.3, FRAME_HEIGHT - 0.3]} />
+          <meshStandardMaterial color={VITRINE_GLASS_COLOR} transparent opacity={0.06} depthWrite={false} />
+        </mesh>
+      )}
 
       {sheet.heading && (
         <Text
