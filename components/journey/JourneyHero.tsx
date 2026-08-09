@@ -7,7 +7,7 @@ export function JourneyHero() {
         <p className="text-antique-gold text-sm md:text-base font-semibold tracking-[0.2em] uppercase mb-4">
           The Journey
         </p>
-        <h1 className="text-white text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight max-w-3xl">
+        <h1 className="font-heading text-white text-4xl md:text-5xl lg:text-6xl font-semibold leading-tight max-w-3xl">
           A Decade of Small Beginnings, Big Stories
         </h1>
         <p className="text-white/80 text-lg md:text-xl mt-6 max-w-2xl leading-relaxed">

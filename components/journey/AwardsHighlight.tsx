@@ -5,7 +5,7 @@ export function AwardsHighlight() {
   return (
     <Container>
       <div className="text-center max-w-2xl mx-auto mb-12">
-        <h2 className="text-heritage-blue text-3xl md:text-4xl font-semibold mb-4">
+        <h2 className="font-heading text-heritage-blue text-3xl md:text-4xl font-semibold mb-4">
           Credibility That Speaks
         </h2>
       </div>
@@ -20,7 +20,7 @@ export function AwardsHighlight() {
                 ★
               </span>
             </div>
-            <h3 className="text-heritage-blue text-lg font-semibold mb-2">{award.title}</h3>
+            <h3 className="font-heading text-heritage-blue text-lg font-semibold mb-2">{award.title}</h3>
             <p className="text-charcoal/70 text-sm leading-relaxed">{award.detail}</p>
           </div>
         ))}

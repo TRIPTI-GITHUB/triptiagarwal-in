@@ -75,7 +75,7 @@ export default async function ExhibitPage({ params }: ExhibitPageProps) {
               : "Mixed Collection"}{" "}
             · {exhibit.sheet_count} Sheets
           </p>
-          <h1 className="text-4xl md:text-5xl font-bold text-brand-charcoal mb-4">
+          <h1 className="font-heading text-4xl md:text-5xl font-bold text-brand-charcoal mb-4">
             {exhibit.title}
           </h1>
           {exhibit.description && (

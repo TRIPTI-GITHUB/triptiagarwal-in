@@ -16,7 +16,7 @@ interface ScrapbookSectionHeadingProps {
  */
 export function ScrapbookSectionHeading({ children, fontClassName = "", className = "" }: ScrapbookSectionHeadingProps) {
   return (
-    <h2 className={`text-3xl sm:text-4xl text-brand-teal ${fontClassName} ${className}`}>
+    <h2 className={`font-heading text-3xl sm:text-4xl text-brand-teal ${fontClassName} ${className}`}>
       {children}
     </h2>
   );

@@ -29,7 +29,7 @@ export default async function Home() {
             Coming Soon
           </p>
 
-          <h1 className="text-5xl md:text-7xl font-bold text-brand-charcoal mb-6">
+          <h1 className="font-heading text-5xl md:text-7xl font-bold text-brand-charcoal mb-6">
             Tripti Agarwal Heritage Lab
           </h1>
 
@@ -59,7 +59,7 @@ export default async function Home() {
       {profile && (
         <Section className="bg-white/40">
           <Container className="max-w-3xl text-center">
-            <h2 className="text-sm uppercase tracking-[0.2em] text-brand-gold mb-3">
+            <h2 className="font-heading text-sm uppercase tracking-[0.2em] text-brand-gold mb-3">
               About
             </h2>
             <p className="text-2xl font-semibold text-brand-charcoal mb-3">

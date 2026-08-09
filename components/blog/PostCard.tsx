@@ -28,7 +28,7 @@ export function PostCard({ post }: PostCardProps) {
         <p className="text-xs uppercase tracking-wide text-brand-gold mb-2">
           {formatDate(post.created_at)}
         </p>
-        <h3 className="font-semibold text-lg text-brand-charcoal mb-2">
+        <h3 className="font-heading font-semibold text-lg text-brand-charcoal mb-2">
           {post.title}
         </h3>
         {post.excerpt && (

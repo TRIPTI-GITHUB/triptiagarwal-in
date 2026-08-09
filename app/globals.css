@@ -9,6 +9,9 @@
   /* Fonts */
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
+  /* Headings sitewide (Homepage_UI_Design_Brief.md section 10) - generates
+     the `font-heading` utility, same mechanism as font-sans/font-mono above. */
+  --font-heading: var(--font-playfair);
 
   /* --- Journey page aliases ---
      The journey components reference these token names. Rather than rename

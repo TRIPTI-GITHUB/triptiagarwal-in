@@ -47,7 +47,7 @@ export default async function About() {
               </div>
             )}
 
-            <h1 className="text-4xl md:text-5xl font-bold text-brand-charcoal mb-3">
+            <h1 className="font-heading text-4xl md:text-5xl font-bold text-brand-charcoal mb-3">
               {profile.full_name}
             </h1>
 

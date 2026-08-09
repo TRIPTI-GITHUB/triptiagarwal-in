@@ -70,7 +70,7 @@ export default async function AboutScrapbook() {
           <ScrapbookFadeIn>
             <div className="flex flex-col md:flex-row items-center gap-10 md:gap-16">
               <div className="order-2 md:order-1 text-center md:text-left">
-                <h1 className="text-4xl md:text-5xl font-bold text-brand-charcoal mb-3">{profile.full_name}</h1>
+                <h1 className="font-heading text-4xl md:text-5xl font-bold text-brand-charcoal mb-3">{profile.full_name}</h1>
                 {profile.tagline && (
                   <p className={`text-2xl md:text-3xl text-brand-teal ${caveat.className}`}>{profile.tagline}</p>
                 )}

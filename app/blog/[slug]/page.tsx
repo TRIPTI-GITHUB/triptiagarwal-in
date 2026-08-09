@@ -68,7 +68,7 @@ export default async function PostPage({ params }: PostPageProps) {
           {formatDate(post.created_at)}
         </p>
 
-        <h1 className="text-4xl md:text-5xl font-bold text-brand-charcoal mb-8">
+        <h1 className="font-heading text-4xl md:text-5xl font-bold text-brand-charcoal mb-8">
           {post.title}
         </h1>
 

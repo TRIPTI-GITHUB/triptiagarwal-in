@@ -59,7 +59,7 @@ export function FeatureGrid() {
             className={feature.href ? "h-full transition-transform hover:-translate-y-0.5" : "h-full"}
           >
             <span className="text-3xl">{feature.icon}</span>
-            <h3 className="mt-3 font-semibold text-brand-charcoal">
+            <h3 className="font-heading mt-3 font-semibold text-brand-charcoal">
               {feature.title}
             </h3>
             <p className="mt-1 text-sm text-brand-charcoal/70">

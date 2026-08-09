@@ -21,7 +21,7 @@ export function MilestoneCard({ milestone }: MilestoneCardProps) {
       <p className="text-antique-gold text-sm font-semibold tracking-wide uppercase mb-2">
         {milestone.dateLabel}
       </p>
-      <h3 className="text-heritage-blue text-xl md:text-2xl font-semibold mb-3">
+      <h3 className="font-heading text-heritage-blue text-xl md:text-2xl font-semibold mb-3">
         {milestone.title}
       </h3>
       <p className="text-charcoal/80 leading-relaxed mb-4">{milestone.shortDescription}</p>

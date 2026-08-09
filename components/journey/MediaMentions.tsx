@@ -5,7 +5,7 @@ export function MediaMentions() {
   return (
     <Container>
       <div className="bg-heritage-blue rounded-2xl px-6 py-12 md:px-16 md:py-16 text-center">
-        <h2 className="text-white text-3xl md:text-4xl font-semibold mb-6">
+        <h2 className="font-heading text-white text-3xl md:text-4xl font-semibold mb-6">
           Featured in National Media
         </h2>
         <p className="text-white/80 max-w-2xl mx-auto leading-relaxed mb-8">

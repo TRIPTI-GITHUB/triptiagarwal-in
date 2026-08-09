@@ -65,7 +65,7 @@ export function SettingsDrawer({
       {open && (
         <div className="absolute top-11 right-0 w-64 bg-white rounded-xl shadow-xl p-4 text-brand-charcoal z-20">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-sm font-semibold">Accessibility</p>
+            <p className="font-heading text-sm font-semibold">Accessibility</p>
             <button
               onClick={() => setOpen(false)}
               aria-label="Close accessibility settings"

@@ -19,7 +19,7 @@ export function Timeline() {
   return (
     <Container>
       <div className="text-center max-w-2xl mx-auto mb-12">
-        <h2 className="text-heritage-blue text-3xl md:text-4xl font-semibold mb-4">
+        <h2 className="font-heading text-heritage-blue text-3xl md:text-4xl font-semibold mb-4">
           How the Journey Unfolded
         </h2>
         <p className="text-charcoal/70 text-lg leading-relaxed">
@@ -75,7 +75,7 @@ export function Timeline() {
                 <p className="text-antique-gold text-sm font-semibold tracking-[0.2em] uppercase mb-2">
                   {era.yearRange}
                 </p>
-                <h3 className="text-heritage-blue text-2xl md:text-3xl font-semibold mb-3">
+                <h3 className="font-heading text-heritage-blue text-2xl md:text-3xl font-semibold mb-3">
                   {era.label}
                 </h3>
                 <p className="text-charcoal/70 leading-relaxed max-w-2xl">{era.intro}</p>

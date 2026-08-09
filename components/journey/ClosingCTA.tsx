@@ -4,7 +4,7 @@ import { Container } from "@/components/ui/Container";
 export function ClosingCTA() {
   return (
     <Container className="text-center max-w-2xl">
-      <h2 className="text-heritage-blue text-3xl md:text-4xl font-semibold mb-6">
+      <h2 className="font-heading text-heritage-blue text-3xl md:text-4xl font-semibold mb-6">
         The Next Chapter
       </h2>
       <p className="text-charcoal/80 leading-relaxed mb-8">

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Geist, Geist_Mono, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/layout/Header";
 import { Footer } from "@/components/layout/Footer";
@@ -11,6 +11,18 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+// Headings sitewide (DesignSystem.md / Homepage_UI_Design_Brief.md §10) -
+// loading it here also fixes WelcomeOverlay/ExhibitModal/Flipbook's
+// existing inline `fontFamily: "Playfair Display, ..."` styles, which
+// had no actual webfont backing this family name before now (only a
+// separate static .ttf wired into the 3D museum's WebGL text) and were
+// silently falling back to Georgia - @font-face is global once
+// declared, so no edits needed in those three files.
+const playfairDisplay = Playfair_Display({
+  variable: "--font-playfair",
   subsets: ["latin"],
 });
 
@@ -32,7 +44,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${playfairDisplay.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col">
         <Header />

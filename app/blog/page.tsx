@@ -31,7 +31,7 @@ export default async function BlogIndex() {
   return (
     <Section>
       <Container>
-        <h1 className="text-4xl md:text-5xl font-bold text-brand-charcoal mb-3">
+        <h1 className="font-heading text-4xl md:text-5xl font-bold text-brand-charcoal mb-3">
           Blog
         </h1>
         <p className="text-lg text-brand-charcoal/70 mb-12 max-w-2xl">

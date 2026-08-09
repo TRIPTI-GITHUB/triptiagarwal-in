@@ -42,7 +42,7 @@ export function ExhibitCard({ exhibit }: ExhibitCardProps) {
             {TYPE_LABELS[exhibit.type]} · {exhibit.sheet_count}{" "}
             {exhibit.sheet_count === 1 ? "Sheet" : "Sheets"}
           </p>
-          <h3 className="text-lg font-semibold text-brand-charcoal">
+          <h3 className="font-heading text-lg font-semibold text-brand-charcoal">
             {exhibit.title}
           </h3>
         </div>

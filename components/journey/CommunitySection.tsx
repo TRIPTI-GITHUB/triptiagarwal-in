@@ -13,7 +13,7 @@ export function CommunitySection() {
     <Container>
       <div className="grid md:grid-cols-2 gap-12 items-start">
         <div>
-          <h2 className="text-heritage-blue text-3xl md:text-4xl font-semibold mb-6">
+          <h2 className="font-heading text-heritage-blue text-3xl md:text-4xl font-semibold mb-6">
             Bringing Heritage to Classrooms
           </h2>
           <p className="text-charcoal/80 leading-relaxed mb-6">
@@ -34,7 +34,7 @@ export function CommunitySection() {
           </ul>
         </div>
         <div className="bg-surface rounded-xl border border-border p-8">
-          <h3 className="text-heritage-blue text-lg font-semibold mb-4">
+          <h3 className="font-heading text-heritage-blue text-lg font-semibold mb-4">
             Formats Offered
           </h3>
           <ul className="space-y-4">
