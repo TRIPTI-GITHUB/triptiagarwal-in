@@ -1,8 +1,10 @@
 "use client";
 
-const TABLE_COLOR = "#5C3A21";
-const TOP_TRIM = "#C9A227";
-const PLANT_POT_COLOR = "#153A5B";
+import { FRAME_WOOD_COLOR, MUSEUM_GOLD, MUSEUM_TEAL } from "@/lib/museum/museumPalette";
+
+const TABLE_COLOR = FRAME_WOOD_COLOR;
+const TOP_TRIM = MUSEUM_GOLD;
+const PLANT_POT_COLOR = MUSEUM_TEAL;
 const PLANT_LEAF_COLOR = "#3A6B4A";
 
 interface LobbySideTableProps {

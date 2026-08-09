@@ -1,8 +1,10 @@
 "use client";
 
-const SEAT_COLOR = "#7A2E2E";
-const WOOD_COLOR = "#5C3A21";
-const TRIM_COLOR = "#C9A227";
+import { MAT_COLOR, FRAME_WOOD_COLOR, MUSEUM_GOLD } from "@/lib/museum/museumPalette";
+
+const SEAT_COLOR = MAT_COLOR;
+const WOOD_COLOR = FRAME_WOOD_COLOR;
+const TRIM_COLOR = MUSEUM_GOLD;
 
 interface LobbyBenchProps {
   position: [number, number, number];

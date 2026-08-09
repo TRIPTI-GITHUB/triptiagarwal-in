@@ -26,10 +26,12 @@ import { FocusIndicator } from "@/components/museum/FocusIndicator";
 import { TeleportExecutor, type TeleportTarget } from "@/components/museum/TeleportExecutor";
 import { TeleportMenu, type TeleportDestination } from "@/components/museum/TeleportMenu";
 import { SettingsDrawer } from "@/components/museum/SettingsDrawer";
+import { CeilingFixture } from "@/components/museum/CeilingFixture";
 import type { MuseumModeChoice } from "@/components/museum/ModeChoicePoster";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
 import { useReducedMotion } from "@/lib/museum/useReducedMotion";
 import { useSyncedLocalStorage } from "@/lib/museum/useSyncedLocalStorage";
+import { getRoomLightMood } from "@/lib/museum/museumPalette";
 
 const TEXT_SCALE_VALUES: Record<string, string> = { default: "100%", large: "115%", largest: "130%" };
 const TEXT_SCALE_STORAGE_KEY = "museum-text-scale";
@@ -445,20 +447,32 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
   return (
     <div className="fixed inset-0 z-[60] bg-black">
       <Canvas camera={{ position: lobbySpawnPosition(), fov: 60 }}>
-        <fog attach="fog" args={["#3a4552", 9, 32]} />
-        <hemisphereLight args={["#ffffff", "#8892a0", 0.55]} />
-        <ambientLight intensity={0.55} color="#ffffff" />
-        {rooms.map((_, i) => (
-          <pointLight
-            key={"room-light-" + i}
-            position={[0, ROOM_HEIGHT - 0.4, roomCenterZ(i)]}
-            intensity={1.1}
-            color="#ffffff"
-            distance={15}
-            decay={1.5}
-          />
-        ))}
-        <RoomsShell rooms={rooms} exhibitTitle={exhibitTitle} exhibitTagline={exhibitTagline} profile={profile} />
+        <fog attach="fog" args={highContrast ? ["#8892a0", 12, 40] : ["#241F1A", 8, 26]} />
+        <hemisphereLight args={highContrast ? ["#ffffff", "#8892a0", 0.75] : ["#F2EDE3", "#3A342C", 0.35]} />
+        <ambientLight intensity={highContrast ? 0.75 : 0.3} color={highContrast ? "#ffffff" : "#F2EDE3"} />
+        {rooms.map((_, i) => {
+          const mood = getRoomLightMood(i, highContrast);
+          const lightPosition: [number, number, number] = [0, ROOM_HEIGHT - 0.4, roomCenterZ(i)];
+          return (
+            <group key={"room-light-" + i}>
+              <pointLight
+                position={lightPosition}
+                intensity={mood.intensity}
+                color={mood.color}
+                distance={15}
+                decay={1.5}
+              />
+              <CeilingFixture position={lightPosition} glowColor={mood.color} highContrast={highContrast} />
+            </group>
+          );
+        })}
+        <RoomsShell
+          rooms={rooms}
+          exhibitTitle={exhibitTitle}
+          exhibitTagline={exhibitTagline}
+          profile={profile}
+          highContrast={highContrast}
+        />
         <MinimapTracker poseRef={poseRef} />
         <DakCompanion
           mode={effectiveDakMode}

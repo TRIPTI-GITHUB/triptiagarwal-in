@@ -2,6 +2,7 @@
 
 import { Text } from "@react-three/drei";
 import type { Profile } from "@/lib/supabase/database.types";
+import { MUSEUM_GOLD, MUSEUM_TEAL, MUSEUM_TEAL_LIGHT, MUSEUM_OFFWHITE, HIGH_CONTRAST_TRIM } from "@/lib/museum/museumPalette";
 
 const PLAYFAIR_FONT = "/fonts/PlayfairDisplay-Bold.ttf";
 const POSTER_WIDTH = 4.4;
@@ -11,6 +12,7 @@ interface BackWallWelcomePosterProps {
   position: [number, number, number];
   rotationY: number;
   profile: Profile | null;
+  highContrast?: boolean;
 }
 
 function getInitials(name: string): string {
@@ -40,18 +42,24 @@ export function BackWallWelcomePoster({
   position,
   rotationY,
   profile,
+  highContrast,
 }: BackWallWelcomePosterProps) {
   if (!profile) return null;
+
+  const trim = highContrast ? HIGH_CONTRAST_TRIM : MUSEUM_GOLD;
+  const panel = MUSEUM_TEAL;
+  const body = highContrast ? "#FFFFFF" : MUSEUM_OFFWHITE;
+  const badgeInner = MUSEUM_TEAL_LIGHT;
 
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <mesh>
         <planeGeometry args={[POSTER_WIDTH, POSTER_HEIGHT]} />
-        <meshStandardMaterial color="#C9A227" />
+        <meshStandardMaterial color={trim} roughness={0.4} metalness={0.2} />
       </mesh>
       <mesh position={[0, 0, 0.01]}>
         <planeGeometry args={[POSTER_WIDTH - 0.14, POSTER_HEIGHT - 0.14]} />
-        <meshStandardMaterial color="#153A5B" />
+        <meshStandardMaterial color={panel} />
       </mesh>
 
       <Text
@@ -59,7 +67,7 @@ export function BackWallWelcomePoster({
         font={PLAYFAIR_FONT}
         fontSize={0.22}
         letterSpacing={0.06}
-        color="#C9A227"
+        color={trim}
         anchorX="center"
         anchorY="middle"
       >
@@ -69,17 +77,17 @@ export function BackWallWelcomePoster({
       <group position={[-POSTER_WIDTH / 2 + 0.9, -0.25, 0.02]}>
         <mesh>
           <circleGeometry args={[0.55, 32]} />
-          <meshStandardMaterial color="#C9A227" />
+          <meshStandardMaterial color={trim} roughness={0.4} metalness={0.2} />
         </mesh>
         <mesh position={[0, 0, 0.005]}>
           <circleGeometry args={[0.5, 32]} />
-          <meshStandardMaterial color="#1E4A6B" />
+          <meshStandardMaterial color={badgeInner} />
         </mesh>
         <Text
           position={[0, 0, 0.01]}
           font={PLAYFAIR_FONT}
           fontSize={0.32}
-          color="#FAF8F4"
+          color={body}
           anchorX="center"
           anchorY="middle"
         >
@@ -91,7 +99,7 @@ export function BackWallWelcomePoster({
         <Text
           fontSize={0.2}
           maxWidth={2.5}
-          color="#FAF8F4"
+          color={body}
           anchorX="center"
           anchorY="middle"
           font={PLAYFAIR_FONT}
@@ -103,7 +111,7 @@ export function BackWallWelcomePoster({
             position={[0, -0.28, 0]}
             fontSize={0.12}
             maxWidth={2.5}
-            color="#C9A227"
+            color={trim}
             anchorX="center"
             anchorY="middle"
           >
@@ -119,7 +127,7 @@ export function BackWallWelcomePoster({
           lineHeight={1.5}
           maxWidth={POSTER_WIDTH - 0.9}
           textAlign="center"
-          color="#FAF8F4"
+          color={body}
           anchorX="center"
           anchorY="top"
         >

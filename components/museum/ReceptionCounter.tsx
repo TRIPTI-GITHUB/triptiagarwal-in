@@ -1,17 +1,16 @@
 "use client";
 
 import { Text } from "@react-three/drei";
+import { FRAME_WOOD_COLOR, MUSEUM_GOLD, MUSEUM_TEAL, PILLAR_COLOR, HIGH_CONTRAST_TRIM } from "@/lib/museum/museumPalette";
 
 const PLAYFAIR_FONT = "/fonts/PlayfairDisplay-Bold.ttf";
-const WOOD_COLOR = "#5C3A21";
-const TRIM_COLOR = "#C9A227";
-const SIGN_BACK_COLOR = "#153A5B";
+const WOOD_COLOR = FRAME_WOOD_COLOR;
 const LAMP_COLOR = "#3E2723";
-const LAMP_SHADE_COLOR = "#C9A227";
 
 interface ReceptionCounterProps {
   position: [number, number, number];
   rotationY: number;
+  highContrast?: boolean;
 }
 
 /**
@@ -21,7 +20,11 @@ interface ReceptionCounterProps {
  * built from simple box/cylinder geometry to match the museum's
  * existing low-poly, elegant aesthetic.
  */
-export function ReceptionCounter({ position, rotationY }: ReceptionCounterProps) {
+export function ReceptionCounter({ position, rotationY, highContrast }: ReceptionCounterProps) {
+  const trim = highContrast ? HIGH_CONTRAST_TRIM : MUSEUM_GOLD;
+  const signBack = MUSEUM_TEAL;
+  const signText = trim;
+
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       {/* Long front section of the desk */}
@@ -39,13 +42,13 @@ export function ReceptionCounter({ position, rotationY }: ReceptionCounterProps)
       {/* Gold trim strip along the top front edge */}
       <mesh position={[0, 0.91, 0.31]}>
         <boxGeometry args={[2.2, 0.02, 0.02]} />
-        <meshStandardMaterial color={TRIM_COLOR} />
+        <meshStandardMaterial color={trim} roughness={0.4} metalness={0.25} />
       </mesh>
 
       {/* Counter top surface, slightly overhanging */}
       <mesh position={[-0.3, 0.925, 0.1]}>
         <boxGeometry args={[3.0, 0.05, 1.4]} />
-        <meshStandardMaterial color="#EDE4D3" />
+        <meshStandardMaterial color={PILLAR_COLOR} />
       </mesh>
 
       {/* Desk lamp */}
@@ -60,7 +63,7 @@ export function ReceptionCounter({ position, rotationY }: ReceptionCounterProps)
         </mesh>
         <mesh position={[0, 0.42, 0.06]} rotation={[0.5, 0, 0]}>
           <coneGeometry args={[0.1, 0.16, 12, 1, true]} />
-          <meshStandardMaterial color={LAMP_SHADE_COLOR} side={2} />
+          <meshStandardMaterial color={trim} side={2} roughness={0.4} metalness={0.25} />
         </mesh>
       </group>
 
@@ -68,18 +71,18 @@ export function ReceptionCounter({ position, rotationY }: ReceptionCounterProps)
       <group position={[0, 1.85, -0.75]}>
         <mesh>
           <planeGeometry args={[1.8, 0.7]} />
-          <meshStandardMaterial color={TRIM_COLOR} />
+          <meshStandardMaterial color={trim} roughness={0.4} metalness={0.2} />
         </mesh>
         <mesh position={[0, 0, 0.01]}>
           <planeGeometry args={[1.7, 0.6]} />
-          <meshStandardMaterial color={SIGN_BACK_COLOR} />
+          <meshStandardMaterial color={signBack} />
         </mesh>
         <Text
           position={[0, 0, 0.02]}
           font={PLAYFAIR_FONT}
           fontSize={0.24}
           letterSpacing={0.1}
-          color="#C9A227"
+          color={signText}
           anchorX="center"
           anchorY="middle"
         >

@@ -1,3 +1,5 @@
+import { MUSEUM_GOLD, MUSEUM_TEAL } from "@/lib/museum/museumPalette";
+
 /**
  * dakConfig
  * Single source of truth for the Dak mascot's placeholder content and
@@ -35,14 +37,14 @@ export const DAK_WALK_SPEED = 2.2;
 export const DAK_TOUR_DWELL_MS = 7000; // how long Dak lingers at a stop before moving on
 export const DAK_TOUR_ARRIVE_THRESHOLD = 0.15;
 
-// Restrained heritage palette (section 4) - reuses the museum's existing
-// brand accents (antique gold, forest green) where they already fit, so
+// Restrained heritage palette (section 4) - reuses the museum's
+// reconciled brand accents (museumPalette) where they already fit, so
 // Dak reads as part of the same world rather than a separate art style.
 export const DAK_COLORS = {
   body: "#A68A64", // khaki
   belly: "#EDE4D3", // cream
   wing: "#4A3324", // deep brown
-  beak: "#C9A227", // muted gold
-  satchel: "#2D5A3D", // deep green
-  clasp: "#C9A227", // muted gold wax seal
+  beak: MUSEUM_GOLD,
+  satchel: MUSEUM_TEAL,
+  clasp: MUSEUM_GOLD,
 } as const;

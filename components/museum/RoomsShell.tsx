@@ -1,19 +1,34 @@
 "use client";
 
 import * as THREE from "three";
-import { Text } from "@react-three/drei";
 import { RoomFrame } from "@/components/museum/RoomFrame";
 import { EntrancePoster } from "@/components/museum/EntrancePoster";
 import { ModeChoicePoster } from "@/components/museum/ModeChoicePoster";
 import { BackWallWelcomePoster } from "@/components/museum/BackWallWelcomePoster";
+import { MuseumIntroWall } from "@/components/museum/MuseumIntroWall";
+import { GalleryDirectoryWall } from "@/components/museum/GalleryDirectoryWall";
+import { ThresholdPlaque } from "@/components/museum/ThresholdPlaque";
 import type { Profile } from "@/lib/supabase/database.types";
 import { LobbyBench } from "@/components/museum/LobbyBench";
 import { LobbySideTable } from "@/components/museum/LobbySideTable";
 import { ReceptionCounter } from "@/components/museum/ReceptionCounter";
-import { ROOM_SIZE, ROOM_HEIGHT, DOOR_WIDTH, FOYER_DEPTH } from "@/lib/museum/roomConstants";
+import { ROOM_SIZE, ROOM_HEIGHT, DOOR_WIDTH, DOOR_HEIGHT } from "@/lib/museum/roomConstants";
+import {
+  WALL_COLOR,
+  CEILING_COLOR,
+  FLOOR_COLOR,
+  BASEBOARD_COLOR,
+  MOULDING_COLOR,
+  MAT_COLOR,
+  PILLAR_COLOR,
+  MUSEUM_GOLD,
+  HIGH_CONTRAST_WALL_COLOR,
+  HIGH_CONTRAST_CEILING_COLOR,
+  HIGH_CONTRAST_FLOOR_COLOR,
+  HIGH_CONTRAST_TRIM,
+} from "@/lib/museum/museumPalette";
 import {
   type MuseumRoom,
-  roomCenterZ,
   entryWallZ,
   exitWallZ,
   foyerFrontZ,
@@ -29,43 +44,76 @@ interface RoomsShellProps {
   exhibitTitle?: string;
   exhibitTagline?: string;
   profile?: Profile | null;
+  highContrast?: boolean;
 }
 
-const WALL_COLOR = "#EAF1F8";
-const CEILING_COLOR = "#FBFDFF";
-const FLOOR_COLOR = "#5B6B7A";
-const MAT_COLOR = "#7A2E2E";
-const PILLAR_COLOR = "#EDE4D3";
-const PILLAR_CAP_COLOR = "#C9A227";
+const BASEBOARD_HEIGHT = 0.22;
+const BASEBOARD_THICKNESS = 0.06;
+const MOULDING_HEIGHT = 0.16;
+const MOULDING_THICKNESS = 0.06;
 
-function DoorWall({ z, facing }: { z: number; facing: number }) {
+function DoorWall({
+  z,
+  facing,
+  wallColor,
+  trimColor,
+}: {
+  z: number;
+  facing: number;
+  wallColor: string;
+  trimColor: string;
+}) {
   const half = ROOM_SIZE / 2;
   const segmentWidth = half - DOOR_WIDTH / 2;
+  const headerHeight = ROOM_HEIGHT - DOOR_HEIGHT;
 
   return (
-    <group>
-      <mesh position={[-(DOOR_WIDTH / 2 + segmentWidth / 2), ROOM_HEIGHT / 2, z]} rotation={[0, facing, 0]}>
+    <group position={[0, 0, z]} rotation={[0, facing, 0]}>
+      <mesh position={[-(DOOR_WIDTH / 2 + segmentWidth / 2), ROOM_HEIGHT / 2, 0]}>
         <planeGeometry args={[segmentWidth, ROOM_HEIGHT]} />
-        <meshStandardMaterial color={WALL_COLOR} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={wallColor} side={THREE.DoubleSide} />
       </mesh>
-      <mesh position={[DOOR_WIDTH / 2 + segmentWidth / 2, ROOM_HEIGHT / 2, z]} rotation={[0, facing, 0]}>
+      <mesh position={[DOOR_WIDTH / 2 + segmentWidth / 2, ROOM_HEIGHT / 2, 0]}>
         <planeGeometry args={[segmentWidth, ROOM_HEIGHT]} />
-        <meshStandardMaterial color={WALL_COLOR} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={wallColor} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* Header closing the gap down to a human-scaled archway rather
+          than a full-height slot */}
+      <mesh position={[0, DOOR_HEIGHT + headerHeight / 2, 0]}>
+        <planeGeometry args={[DOOR_WIDTH, headerHeight]} />
+        <meshStandardMaterial color={wallColor} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* Gold lintel + door-frame posts - "every doorway... a physical
+          marker" (Museum Navigation, section 3), offset 0.04 proud of
+          the wall plane to avoid z-fighting */}
+      <mesh position={[0, DOOR_HEIGHT, 0.04]}>
+        <boxGeometry args={[DOOR_WIDTH + 0.15, 0.08, 0.06]} />
+        <meshStandardMaterial color={trimColor} roughness={0.4} metalness={0.25} />
+      </mesh>
+      <mesh position={[-DOOR_WIDTH / 2, DOOR_HEIGHT / 2, 0.04]}>
+        <boxGeometry args={[0.08, DOOR_HEIGHT, 0.06]} />
+        <meshStandardMaterial color={trimColor} roughness={0.4} metalness={0.25} />
+      </mesh>
+      <mesh position={[DOOR_WIDTH / 2, DOOR_HEIGHT / 2, 0.04]}>
+        <boxGeometry args={[0.08, DOOR_HEIGHT, 0.06]} />
+        <meshStandardMaterial color={trimColor} roughness={0.4} metalness={0.25} />
       </mesh>
     </group>
   );
 }
 
-function Pillar({ x, z }: { x: number; z: number }) {
+function Pillar({ x, z, pillarColor, capColor }: { x: number; z: number; pillarColor: string; capColor: string }) {
   return (
     <group position={[x, 0, z]}>
       <mesh position={[0, ROOM_HEIGHT / 2, 0]}>
         <boxGeometry args={[0.5, ROOM_HEIGHT, 0.5]} />
-        <meshStandardMaterial color={PILLAR_COLOR} />
+        <meshStandardMaterial color={pillarColor} />
       </mesh>
       <mesh position={[0, ROOM_HEIGHT - 0.15, 0]}>
         <boxGeometry args={[0.7, 0.3, 0.7]} />
-        <meshStandardMaterial color={PILLAR_CAP_COLOR} />
+        <meshStandardMaterial color={capColor} roughness={0.4} metalness={0.25} />
       </mesh>
     </group>
   );
@@ -76,10 +124,12 @@ function Pillar({ x, z }: { x: number; z: number }) {
  * Renders the full gallery hall shell: an entrance facade wall (with
  * a doorway gap, flanked by two welcome/nameplate posters) at the
  * very front of the foyer, pillars and a welcome mat further in near
- * Room 1's doorway, the two exhibit-specific posters from Step A, and
- * every room's floor, ceiling, walls, and mounted sheets.
+ * Room 1's doorway, the lobby's Museum Introduction and Gallery
+ * Directory walls, the exhibit-specific posters, a threshold plaque
+ * beside every doorway, and every room's floor, ceiling, walls,
+ * baseboard/moulding trim, and mounted sheets.
  */
-export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile }: RoomsShellProps) {
+export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile, highContrast }: RoomsShellProps) {
   const numRooms = rooms.length;
   const frontZ = foyerFrontZ();
   const backZ = exitWallZ(numRooms - 1);
@@ -87,11 +137,23 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile }: Roo
   const depth = frontZ - backZ;
   const half = ROOM_SIZE / 2;
 
+  const wallColor = highContrast ? HIGH_CONTRAST_WALL_COLOR : WALL_COLOR;
+  const ceilingColor = highContrast ? HIGH_CONTRAST_CEILING_COLOR : CEILING_COLOR;
+  const floorColor = highContrast ? HIGH_CONTRAST_FLOOR_COLOR : FLOOR_COLOR;
+  const baseboardColor = highContrast ? "#1A1A1A" : BASEBOARD_COLOR;
+  const trimColor = highContrast ? HIGH_CONTRAST_TRIM : MOULDING_COLOR;
+  const pillarCapColor = highContrast ? HIGH_CONTRAST_TRIM : MUSEUM_GOLD;
+
   const placements = getFramePlacements(rooms);
   const hasFeaturedSheets = rooms.some((room) => room.sheets.some((sheet) => sheet.featured));
   const matDepth = 2.5;
   const matZ = entryWallZ(0) + matDepth / 2;
   const taglinePosterZ = entryWallZ(0) + 3.5;
+  // Between the doorway (z=0) and the tagline posters (z=3.5) - the
+  // side walls there are otherwise bare (the mat/pillars sit clear of
+  // x=+/-half), unlike the crowded z=6.25-9 band where the welcome/
+  // mode posters' actual widths (up to 4.4) already fill the wall.
+  const introDirectoryPosterZ = entryWallZ(0) + 1.75;
   const modePosterZ = entryWallZ(0) + 9;
   const welcomePosterZ = entryWallZ(0) + 9;
   const frontPosterFlank = DOOR_WIDTH / 2 + 1.3 + 0.3;
@@ -100,47 +162,69 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile }: Roo
     <group>
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, centerZ]}>
         <planeGeometry args={[ROOM_SIZE, depth]} />
-        <meshStandardMaterial color={FLOOR_COLOR} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={floorColor} side={THREE.DoubleSide} />
       </mesh>
 
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.01, matZ]}>
         <planeGeometry args={[DOOR_WIDTH + 1.5, matDepth]} />
-        <meshStandardMaterial color={MAT_COLOR} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={highContrast ? "#5A1F1F" : MAT_COLOR} side={THREE.DoubleSide} />
       </mesh>
 
       <mesh rotation={[Math.PI / 2, 0, 0]} position={[0, ROOM_HEIGHT, centerZ]}>
         <planeGeometry args={[ROOM_SIZE, depth]} />
-        <meshStandardMaterial color={CEILING_COLOR} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={ceilingColor} side={THREE.DoubleSide} />
       </mesh>
 
       <mesh position={[-half, ROOM_HEIGHT / 2, centerZ]} rotation={[0, Math.PI / 2, 0]}>
         <planeGeometry args={[depth, ROOM_HEIGHT]} />
-        <meshStandardMaterial color={WALL_COLOR} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={wallColor} side={THREE.DoubleSide} />
       </mesh>
       <mesh position={[half, ROOM_HEIGHT / 2, centerZ]} rotation={[0, -Math.PI / 2, 0]}>
         <planeGeometry args={[depth, ROOM_HEIGHT]} />
-        <meshStandardMaterial color={WALL_COLOR} side={THREE.DoubleSide} />
+        <meshStandardMaterial color={wallColor} side={THREE.DoubleSide} />
+      </mesh>
+
+      {/* Baseboard + crown moulding along both continuous side walls -
+          the cheapest available change for "stopped looking like a
+          box," per the Phase 1 visual proposal */}
+      <mesh position={[-half + BASEBOARD_THICKNESS / 2, BASEBOARD_HEIGHT / 2, centerZ]}>
+        <boxGeometry args={[BASEBOARD_THICKNESS, BASEBOARD_HEIGHT, depth]} />
+        <meshStandardMaterial color={baseboardColor} />
+      </mesh>
+      <mesh position={[half - BASEBOARD_THICKNESS / 2, BASEBOARD_HEIGHT / 2, centerZ]}>
+        <boxGeometry args={[BASEBOARD_THICKNESS, BASEBOARD_HEIGHT, depth]} />
+        <meshStandardMaterial color={baseboardColor} />
+      </mesh>
+      <mesh position={[-half + MOULDING_THICKNESS / 2, ROOM_HEIGHT - MOULDING_HEIGHT / 2, centerZ]}>
+        <boxGeometry args={[MOULDING_THICKNESS, MOULDING_HEIGHT, depth]} />
+        <meshStandardMaterial color={trimColor} roughness={0.4} metalness={0.25} />
+      </mesh>
+      <mesh position={[half - MOULDING_THICKNESS / 2, ROOM_HEIGHT - MOULDING_HEIGHT / 2, centerZ]}>
+        <boxGeometry args={[MOULDING_THICKNESS, MOULDING_HEIGHT, depth]} />
+        <meshStandardMaterial color={trimColor} roughness={0.4} metalness={0.25} />
       </mesh>
 
       {/* Entrance facade - the outermost wall, with a doorway gap
           flanked by two welcome posters */}
-      <DoorWall z={frontZ} facing={Math.PI} />
+      <DoorWall z={frontZ} facing={Math.PI} wallColor={wallColor} trimColor={trimColor} />
 
       <EntrancePoster
         position={[-frontPosterFlank, ROOM_HEIGHT / 2 - 0.1, frontZ - 0.05]}
         rotationY={Math.PI}
         eyebrow="Digital Museum"
         lines={["Tripti Agarwal", "Heritage Lab"]}
+        highContrast={highContrast}
       />
       <EntrancePoster
         position={[frontPosterFlank, ROOM_HEIGHT / 2 - 0.1, frontZ - 0.05]}
         rotationY={Math.PI}
         eyebrow="Welcome"
         lines={["Every Collectible", "Tells a Story"]}
+        highContrast={highContrast}
       />
 
-      <Pillar x={-(DOOR_WIDTH / 2 + 0.6)} z={entryWallZ(0) + 1} />
-      <Pillar x={DOOR_WIDTH / 2 + 0.6} z={entryWallZ(0) + 1} />
+      <Pillar x={-(DOOR_WIDTH / 2 + 0.6)} z={entryWallZ(0) + 1} pillarColor={PILLAR_COLOR} capColor={pillarCapColor} />
+      <Pillar x={DOOR_WIDTH / 2 + 0.6} z={entryWallZ(0) + 1} pillarColor={PILLAR_COLOR} capColor={pillarCapColor} />
 
       {exhibitTitle && (
         <EntrancePoster
@@ -148,6 +232,7 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile }: Roo
           rotationY={Math.PI / 2}
           eyebrow="Tripti Agarwal Heritage Lab"
           lines={["The Story Of", exhibitTitle]}
+          highContrast={highContrast}
         />
       )}
 
@@ -156,20 +241,39 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile }: Roo
           position={[half - 0.05, ROOM_HEIGHT / 2 - 0.1, taglinePosterZ]}
           rotationY={-Math.PI / 2}
           lines={[exhibitTagline]}
+          highContrast={highContrast}
         />
       )}
+
+      {/* Museum Introduction (left) + Gallery Directory (right) - every
+          wall should have purpose (Lobby Design, section 7 / Museum
+          Navigation, section 3) - mounted above the seating so a
+          visitor reads them while deciding how to visit */}
+      <MuseumIntroWall
+        position={[-half + 0.05, ROOM_HEIGHT / 2, introDirectoryPosterZ]}
+        rotationY={Math.PI / 2}
+        highContrast={highContrast}
+      />
+      <GalleryDirectoryWall
+        position={[half - 0.05, ROOM_HEIGHT / 2, introDirectoryPosterZ]}
+        rotationY={-Math.PI / 2}
+        rooms={rooms}
+        highContrast={highContrast}
+      />
 
       <ModeChoicePoster
         position={[half - 0.05, ROOM_HEIGHT / 2, modePosterZ]}
         rotationY={-Math.PI / 2}
         hasFeaturedSheets={hasFeaturedSheets}
+        highContrast={highContrast}
       />
       <BackWallWelcomePoster
         position={[-half + 0.05, ROOM_HEIGHT / 2, welcomePosterZ]}
         rotationY={Math.PI / 2}
         profile={profile ?? null}
+        highContrast={highContrast}
       />
-      
+
       {/* Benches face into the hall (toward the Room 1 doorway) rather
           than each other, and the side table sits beside the right
           bench - both clear of the x=0 sightline down the entry
@@ -182,36 +286,38 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile }: Roo
 
       <pointLight
         position={[0, ROOM_HEIGHT - 0.6, entryWallZ(0) + 1.2]}
-        intensity={1.3}
-        color="#ffdca8"
+        intensity={highContrast ? 1.6 : 1.3}
+        color={highContrast ? "#ffffff" : "#ffdca8"}
         distance={8}
         decay={1.5}
       />
 
       <pointLight
         position={[0, ROOM_HEIGHT - 0.6, frontZ - 1]}
-        intensity={1}
-        color="#ffffff"
+        intensity={highContrast ? 1.4 : 0.9}
+        color={highContrast ? "#ffffff" : "#ffdca8"}
         distance={7}
         decay={1.5}
       />
 
       {rooms.map((_, i) => (
-        <DoorWall key={"entry-" + i} z={entryWallZ(i)} facing={Math.PI} />
+        <DoorWall key={"entry-" + i} z={entryWallZ(i)} facing={Math.PI} wallColor={wallColor} trimColor={trimColor} />
       ))}
-      <DoorWall z={exitWallZ(numRooms - 1)} facing={0} />
+      <DoorWall z={exitWallZ(numRooms - 1)} facing={0} wallColor={wallColor} trimColor={trimColor} />
 
+      {/* Threshold plaques - one beside every doorway a visitor walks
+          through, including the lobby's own entrance into Room 1 -
+          replacing the previous mid-room floating title text so the
+          destination is legible *before* committing to the doorway
+          (Museum Navigation, section 3). */}
       {rooms.map((room, i) => (
-        <Text
-          key={room.title + i}
-          position={[0, ROOM_HEIGHT - 0.6, roomCenterZ(i)]}
-          fontSize={0.35}
-          color="#153A5B"
-          anchorX="center"
-          anchorY="middle"
-        >
-          {room.title}
-        </Text>
+        <ThresholdPlaque
+          key={"threshold-" + i}
+          position={[DOOR_WIDTH / 2 + 0.55, 2.1, entryWallZ(i) - 0.05]}
+          rotationY={Math.PI}
+          title={room.title}
+          highContrast={highContrast}
+        />
       ))}
 
       {placements.map((p) => (
@@ -220,6 +326,7 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile }: Roo
           sheet={p.sheet}
           position={[p.x, p.y, p.z]}
           rotationY={p.rotationY}
+          highContrast={highContrast}
         />
       ))}
     </group>

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState, MutableRefObject } from "react";
 import { ROOM_SIZE, DOOR_WIDTH } from "@/lib/museum/roomConstants";
 import { entryWallZ, totalHallLength } from "@/lib/museum/layout";
+import { MUSEUM_GOLD, MUSEUM_TEAL } from "@/lib/museum/museumPalette";
 import type { MinimapPose } from "@/components/museum/MinimapTracker";
 import type { DakLivePose } from "@/components/museum/DakCompanion";
 
@@ -144,14 +145,14 @@ export function Minimap({ numRooms, poseRef, guidePoseRef }: MinimapProps) {
             cx={guidePose.x}
             cy={mapY(guidePose.z)}
             r={0.45}
-            fill="#C9A227"
+            fill={MUSEUM_GOLD}
             stroke="#fff"
             strokeWidth={0.08}
           />
         )}
 
         <g transform={`translate(${markerX} ${markerY}) rotate(${angleDeg})`}>
-          <polygon points="0,-0.6 0.4,0.4 -0.4,0.4" fill="#153A5B" stroke="#fff" strokeWidth={0.05} />
+          <polygon points="0,-0.6 0.4,0.4 -0.4,0.4" fill={MUSEUM_TEAL} stroke="#fff" strokeWidth={0.05} />
         </g>
       </svg>
     </div>

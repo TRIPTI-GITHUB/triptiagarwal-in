@@ -1,6 +1,7 @@
 export const ROOM_SIZE = 12;
 export const ROOM_HEIGHT = 4;
 export const DOOR_WIDTH = 2.2;
+export const DOOR_HEIGHT = 3.0; // closes each doorway gap to a human-scaled archway, header fills the rest up to ROOM_HEIGHT
 export const EYE_HEIGHT = 1.6;
 
 export const FRAME_Y = 1.9;

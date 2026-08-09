@@ -1,16 +1,16 @@
 "use client";
 
 import { Text } from "@react-three/drei";
+import { noRaycast } from "@/lib/museum/threeHelpers";
+import {
+  MUSEUM_GOLD,
+  MUSEUM_TEAL,
+  MUSEUM_TEAL_LIGHT,
+  MUSEUM_OFFWHITE,
+  HIGH_CONTRAST_TRIM,
+} from "@/lib/museum/museumPalette";
 
 const PLAYFAIR_FONT = "/fonts/PlayfairDisplay-Bold.ttf";
-
-// Text objects should be visible but never intercept clicks - the
-// actual clickable surface is the button panel mesh behind them.
-// Returning null from raycast tells Three.js to skip this object
-// entirely during ray intersection tests.
-function noRaycast() {
-  return null;
-}
 
 export type MuseumModeChoice = "quick" | "full" | "free";
 
@@ -18,6 +18,7 @@ interface ModeChoicePosterProps {
   position: [number, number, number];
   rotationY: number;
   hasFeaturedSheets: boolean;
+  highContrast?: boolean;
 }
 
 interface OptionButtonProps {
@@ -27,12 +28,18 @@ interface OptionButtonProps {
   label: string;
   sublabel: string;
   disabled?: boolean;
+  highContrast?: boolean;
 }
 
-function OptionButton({ y, mode, icon, label, sublabel, disabled }: OptionButtonProps) {
-  const panelColor = disabled ? "#3A4552" : "#1E4A6B";
-  const innerColor = disabled ? "#2C3440" : "#153A5B";
-  const textColor = disabled ? "#8A93A0" : "#C9A227";
+function OptionButton({ y, mode, icon, label, sublabel, disabled, highContrast }: OptionButtonProps) {
+  // Panels stay dark in both modes - see ModeChoicePoster's note on why
+  // high contrast pushes trim/text to more saturated extremes instead
+  // of inverting the panel to a pale background.
+  const trim = highContrast ? HIGH_CONTRAST_TRIM : MUSEUM_GOLD;
+  const panelColor = disabled ? "#3A4552" : MUSEUM_TEAL_LIGHT;
+  const innerColor = disabled ? "#2C3440" : MUSEUM_TEAL;
+  const textColor = disabled ? "#8A93A0" : trim;
+  const sublabelColor = disabled ? "#8A93A0" : highContrast ? "#FFFFFF" : MUSEUM_OFFWHITE;
 
   return (
     <group position={[0, y, 0.02]}>
@@ -58,7 +65,7 @@ function OptionButton({ y, mode, icon, label, sublabel, disabled }: OptionButton
       <Text
         position={[0, -0.16, 0.02]}
         fontSize={0.1}
-        color={disabled ? "#8A93A0" : "#FAF8F4"}
+        color={sublabelColor}
         anchorX="center"
         anchorY="middle"
         raycast={noRaycast}
@@ -80,16 +87,20 @@ function OptionButton({ y, mode, icon, label, sublabel, disabled }: OptionButton
  * mesh underneath them, never getting silently absorbed by the text
  * itself.
  */
-export function ModeChoicePoster({ position, rotationY, hasFeaturedSheets }: ModeChoicePosterProps) {
+export function ModeChoicePoster({ position, rotationY, hasFeaturedSheets, highContrast }: ModeChoicePosterProps) {
+  const trim = highContrast ? HIGH_CONTRAST_TRIM : MUSEUM_GOLD;
+  const panel = MUSEUM_TEAL;
+  const heading = highContrast ? "#FFFFFF" : MUSEUM_OFFWHITE;
+
   return (
     <group position={position} rotation={[0, rotationY, 0]}>
       <mesh>
         <planeGeometry args={[3.2, 3.6]} />
-        <meshStandardMaterial color="#C9A227" />
+        <meshStandardMaterial color={trim} roughness={0.4} metalness={0.2} />
       </mesh>
       <mesh position={[0, 0, 0.01]}>
         <planeGeometry args={[3.08, 3.48]} />
-        <meshStandardMaterial color="#153A5B" />
+        <meshStandardMaterial color={panel} />
       </mesh>
 
       <Text
@@ -97,7 +108,7 @@ export function ModeChoicePoster({ position, rotationY, hasFeaturedSheets }: Mod
         font={PLAYFAIR_FONT}
         fontSize={0.14}
         letterSpacing={0.12}
-        color="#C9A227"
+        color={trim}
         anchorX="center"
         anchorY="middle"
         raycast={noRaycast}
@@ -108,7 +119,7 @@ export function ModeChoicePoster({ position, rotationY, hasFeaturedSheets }: Mod
         position={[0, 1.14, 0.02]}
         font={PLAYFAIR_FONT}
         fontSize={0.23}
-        color="#FAF8F4"
+        color={heading}
         anchorX="center"
         anchorY="middle"
         raycast={noRaycast}
@@ -123,6 +134,7 @@ export function ModeChoicePoster({ position, rotationY, hasFeaturedSheets }: Mod
         label="Quick Look"
         sublabel={hasFeaturedSheets ? "The highlights, curated" : "Coming soon"}
         disabled={!hasFeaturedSheets}
+        highContrast={highContrast}
       />
       <OptionButton
         y={-0.4}
@@ -130,6 +142,7 @@ export function ModeChoicePoster({ position, rotationY, hasFeaturedSheets }: Mod
         icon="🎫"
         label="Full Tour"
         sublabel="See every sheet, in order"
+        highContrast={highContrast}
       />
       <OptionButton
         y={-1.3}
@@ -137,6 +150,7 @@ export function ModeChoicePoster({ position, rotationY, hasFeaturedSheets }: Mod
         icon="🚶"
         label="Explore Freely"
         sublabel="Wander at your own pace"
+        highContrast={highContrast}
       />
     </group>
   );
