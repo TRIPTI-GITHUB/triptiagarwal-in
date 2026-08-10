@@ -3,6 +3,11 @@ import type { Exhibit } from "@/lib/supabase/database.types";
 
 interface ExhibitCardProps {
   exhibit: Exhibit;
+  // Defaults to the 2D sheet-viewer route - the /museum landing page
+  // passes `/museum/${slug}` instead, reusing this exact card rather
+  // than duplicating its markup for a second grid.
+  href?: string;
+  eyebrow?: string;
 }
 
 const TYPE_LABELS: Record<Exhibit["type"], string> = {
@@ -19,9 +24,9 @@ const TYPE_LABELS: Record<Exhibit["type"], string> = {
  * generic content card, matching the exhibition-hall concept for
  * the /exhibits landing page.
  */
-export function ExhibitCard({ exhibit }: ExhibitCardProps) {
+export function ExhibitCard({ exhibit, href, eyebrow }: ExhibitCardProps) {
   return (
-    <Link href={`/exhibits/${exhibit.slug}`} className="group block">
+    <Link href={href ?? `/exhibits/${exhibit.slug}`} className="group block">
       <div className="p-3 bg-white border-2 border-brand-gold/40 rounded-sm shadow-sm transition-all duration-200 group-hover:border-brand-gold group-hover:shadow-md">
         <div className="aspect-[3/4] w-full overflow-hidden bg-brand-teal/5 border border-brand-charcoal/10">
           {exhibit.cover_image_url ? (
@@ -39,8 +44,7 @@ export function ExhibitCard({ exhibit }: ExhibitCardProps) {
 
         <div className="pt-4 pb-1 text-center">
           <p className="text-[11px] uppercase tracking-[0.2em] text-brand-gold mb-1">
-            {TYPE_LABELS[exhibit.type]} · {exhibit.sheet_count}{" "}
-            {exhibit.sheet_count === 1 ? "Sheet" : "Sheets"}
+            {eyebrow ?? `${TYPE_LABELS[exhibit.type]} · ${exhibit.sheet_count} ${exhibit.sheet_count === 1 ? "Sheet" : "Sheets"}`}
           </p>
           <h3 className="font-heading text-lg font-semibold text-brand-charcoal">
             {exhibit.title}

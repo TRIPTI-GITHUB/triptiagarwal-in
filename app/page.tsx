@@ -1,90 +1,79 @@
+import type { Metadata } from "next";
 import { Container } from "@/components/ui/Container";
 import { Section } from "@/components/ui/Section";
-import { Button } from "@/components/ui/Button";
-import { FeatureGrid } from "@/components/home/FeatureGrid";
+import { Hero } from "@/components/home/Hero";
+import { HighlightStrip } from "@/components/home/HighlightStrip";
+import { StoryTeaser } from "@/components/home/StoryTeaser";
+import { PullQuoteBanner } from "@/components/home/PullQuoteBanner";
 import { createClient } from "@/lib/supabase/server";
-import type { Profile } from "@/lib/supabase/database.types";
+import type { Profile, SiteContent } from "@/lib/supabase/database.types";
+
+export const metadata: Metadata = {
+  title: "Tripti Agarwal Heritage Lab",
+  description:
+    "A digital space dedicated to exploring history through philately, numismatics, postal heritage and storytelling — featuring curated collections, award-winning exhibits, educational resources, and AI-powered heritage experiences.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    title: "Tripti Agarwal Heritage Lab",
+    description: "Preserving the Past. Inspiring the Future.",
+    type: "website",
+  },
+};
 
 /**
  * Home
- * Server Component — runs on the server, fetches the profile row
- * directly from Supabase before the page is sent to the visitor.
- * No loading spinner needed since the data is ready before render.
+ * Server Component - rebuilt per Homepage_UI_Design_Brief_wordpress.md:
+ * Hero, Highlight Strip, Story Teaser, Pull-Quote Banner. Fetches
+ * `profiles` (existing) and `site_content` (new) once, passing data
+ * down as props rather than each section querying independently.
+ *
+ * If `site_content` doesn't exist yet (migration not applied), the
+ * query returns a null-data error response rather than throwing, and
+ * every section below already has a graceful empty state for that.
  */
 export default async function Home() {
   const supabase = await createClient();
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .limit(1)
-    .maybeSingle<Profile>();
+  const [{ data: profile }, { data: siteContent }] = await Promise.all([
+    supabase.from("profiles").select("*").limit(1).maybeSingle<Profile>(),
+    supabase.from("site_content").select("*").limit(1).maybeSingle<SiteContent>(),
+  ]);
+
+  const homeHero = siteContent?.hero_content?.home ?? null;
+  const highlightItems = siteContent?.highlight_strip ?? [];
 
   return (
     <>
-      {/* Hero */}
-      <Section className="text-center">
+      <Hero
+        imageUrl={homeHero?.imageUrl}
+        imageAlt={homeHero?.alt}
+        heading={homeHero?.heading || "Tripti Agarwal Heritage Lab"}
+        tagline={homeHero?.tagline || "Preserving History. Inspiring Curiosity."}
+        ctaHref="/museum"
+        ctaLabel="Step Into the Museum"
+        secondaryHref="/exhibits"
+        secondaryLabel="or explore the collection"
+      />
+
+      <Section surface="white">
         <Container>
-          <p className="uppercase tracking-[0.3em] text-sm text-brand-gold mb-4">
-            Coming Soon
-          </p>
-
-          <h1 className="font-heading text-5xl md:text-7xl font-bold text-brand-charcoal mb-6">
-            Tripti Agarwal Heritage Lab
-          </h1>
-
-          <p className="text-xl md:text-2xl italic text-brand-teal mb-10">
-            Preserving the Past. Inspiring the Future.
-          </p>
-
-          <p className="text-lg leading-8 max-w-3xl mx-auto mb-10 text-brand-charcoal/90">
-            A digital space dedicated to exploring history through
-            philately, numismatics, postal heritage and storytelling —
-            featuring curated collections, award-winning exhibits,
-            educational resources, and AI-powered heritage experiences.
-          </p>
-
-          <div className="flex flex-wrap items-center justify-center gap-4">
-            <Button href="/about" variant="primary">
-              About the Collection
-            </Button>
-            <Button href="/blog" variant="secondary">
-              Read the Blog
-            </Button>
-          </div>
+          <HighlightStrip items={highlightItems} />
         </Container>
       </Section>
 
-      {/* About preview — pulled live from Supabase */}
-      {profile && (
-        <Section className="bg-white/40">
-          <Container className="max-w-3xl text-center">
-            <h2 className="font-heading text-sm uppercase tracking-[0.2em] text-brand-gold mb-3">
-              About
-            </h2>
-            <p className="text-2xl font-semibold text-brand-charcoal mb-3">
-              {profile.full_name}
-            </p>
-            {profile.headline && (
-              <p className="text-lg italic text-brand-teal mb-4">
-                {profile.headline}
-              </p>
-            )}
-            {profile.bio && (
-              <p className="text-brand-charcoal/80 leading-7">
-                {profile.bio}
-              </p>
-            )}
+      {profile?.bio && (
+        <Section surface="ivory">
+          <Container className="max-w-5xl">
+            <StoryTeaser profile={profile} />
           </Container>
         </Section>
       )}
 
-      {/* Feature grid */}
-      <Section>
-        <Container>
-          <FeatureGrid />
-        </Container>
-      </Section>
+      {siteContent?.pull_quote && (
+        <Section surface="white">
+          <PullQuoteBanner quote={siteContent.pull_quote} attribution={siteContent.pull_quote_attribution} />
+        </Section>
+      )}
     </>
   );
 }

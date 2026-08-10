@@ -38,6 +38,49 @@ export interface Profile {
   contact_email: string | null;
 }
 
+/**
+ * HeroContentKey / HighlightStripPillar
+ * Mirror the shapes stored in site_content (Homepage rebuild) - a
+ * sitewide/page-chrome content table, deliberately separate from
+ * `profiles` (see the site_content migration for the reasoning).
+ */
+export type HeroContentKey = "home" | "about" | "collections" | "museum" | "gallery" | "blog";
+
+export interface HeroContentEntry {
+  imageUrl: string;
+  alt: string;
+  heading?: string;
+  tagline?: string;
+}
+
+export type HighlightStripPillar = "numismatics" | "philately" | "postal";
+
+export interface HighlightStripItem {
+  pillar: HighlightStripPillar;
+  quote: string;
+  imageUrl: string;
+  alt: string;
+  href: string;
+}
+
+export type SocialPlatform = "Numista" | "Instagram" | "Facebook" | "LinkedIn" | "Postcrossing";
+
+export interface SocialLink {
+  platform: SocialPlatform;
+  url: string;
+}
+
+export interface SiteContent {
+  id: string;
+  hero_content: Partial<Record<HeroContentKey, HeroContentEntry>> | null;
+  highlight_strip: HighlightStripItem[] | null;
+  pull_quote: string | null;
+  pull_quote_attribution: string | null;
+  social_links: SocialLink[] | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Post {
   id: string;
   title: string;
