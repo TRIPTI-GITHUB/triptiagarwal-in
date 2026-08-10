@@ -36,6 +36,11 @@ export const NAV_ITEMS: NavItem[] = [
     label: "About",
     children: [
       { href: "/about", label: "About Tripti", description: "Tripti's story, in her own words." },
+      {
+        href: "/about-scrapbook",
+        label: "About Tripti - Scrapbook Look",
+        description: "The same story, told as a warm photo scrapbook.",
+      },
       { href: "/journey", label: "Journey", description: "A decade-long timeline of milestones." },
       {
         href: "/about/recognition",
