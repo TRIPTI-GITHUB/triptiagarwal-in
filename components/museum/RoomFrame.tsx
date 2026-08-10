@@ -34,6 +34,13 @@ function RoomFrameArtwork({ sheet }: RoomFrameArtworkProps) {
   );
 }
 
+export interface RoomFrameSheetTheme {
+  headingColor: string;
+  headingOutline: string;
+  glowColor: string;
+  glowIntensity: number;
+}
+
 interface RoomFrameProps {
   sheet: ExhibitSheet;
   position: [number, number, number];
@@ -45,6 +52,15 @@ interface RoomFrameProps {
   // without touching anything a visitor actually reads (heading,
   // plaque, curator's-note tell all stay).
   simplified?: boolean;
+  // Room Beautification Phase 2 - set only by rooms using a light-wall
+  // RoomTheme (e.g. "India's Freedom Struggle"). The floating heading
+  // text has no backing plate of its own (unlike the plaque), so its
+  // gold-on-dark-wall default would wash out on a cream wall; this
+  // flips it to a dark-on-light pairing and gives non-award sheets a
+  // faint emissive "vitrine glow" on their existing gold trim mesh (no
+  // extra geometry). Ignored whenever `highContrast` is set - that
+  // mode's own override always wins.
+  sheetTheme?: RoomFrameSheetTheme;
 }
 
 /**
@@ -66,7 +82,7 @@ interface RoomFrameProps {
  * reaches the tagged image/frame mesh beneath them - none of this
  * decoration is itself clickable.
  */
-export function RoomFrame({ sheet, position, rotationY, highContrast, simplified }: RoomFrameProps) {
+export function RoomFrame({ sheet, position, rotationY, highContrast, simplified, sheetTheme }: RoomFrameProps) {
   const isAward = sheet.category === "award";
   const hasCuratorNote = !!sheet.curator_note;
 
@@ -75,12 +91,13 @@ export function RoomFrame({ sheet, position, rotationY, highContrast, simplified
   // text is a strong pairing regardless of mode. The heading text has
   // no backing of its own - it sits directly against whatever's behind
   // it, which is the room wall - so its colors must follow the wall's
-  // own light/dark flip (RoomsShell's `highContrast`), not the frame's
-  // other trim colors, or the pairing inverts into low contrast.
+  // own light/dark flip (RoomsShell's `highContrast`, or a light-wall
+  // RoomTheme's `sheetTheme`), not the frame's other trim colors, or
+  // the pairing inverts into low contrast.
   const plaqueColor = highContrast ? HIGH_CONTRAST_TRIM : isAward ? MUSEUM_GOLD_LIGHT : MUSEUM_GOLD;
   const plaqueTextColor = MUSEUM_CHARCOAL;
-  const headingColor = highContrast ? "#000000" : trim;
-  const headingOutline = highContrast ? "#FFFFFF" : MUSEUM_CHARCOAL;
+  const headingColor = highContrast ? "#000000" : sheetTheme ? sheetTheme.headingColor : trim;
+  const headingOutline = highContrast ? "#FFFFFF" : sheetTheme ? sheetTheme.headingOutline : MUSEUM_CHARCOAL;
 
   const plaqueLabel = "No. " + sheet.sheet_number + (sheet.heading ? "  —  " + sheet.heading : "");
 
@@ -114,9 +131,25 @@ export function RoomFrame({ sheet, position, rotationY, highContrast, simplified
         <meshStandardMaterial color={FRAME_WOOD_COLOR} roughness={0.75} />
       </mesh>
 
+      {/* Gold inner trim - doubles as the "vitrine spotlight" glow for
+          RoomTheme's sheetTheme (e.g. "India's Freedom Struggle") when
+          present: an emissive tweak on this ALREADY-rendered mesh
+          rather than an extra plane, so a 24-sheet room costs zero
+          additional draw calls / transparent overdraw for the effect -
+          the earlier version added a full extra transparent plane per
+          sheet and measurably cost frame rate (Room Beautification
+          Phase 2 perf check). emissiveIntensity is 0 for every other
+          exhibit (no sheetTheme, or an award sheet, which keeps its own
+          stronger glow above), so this is a visual no-op there. */}
       <mesh position={[0, 0, 0.015]}>
         <planeGeometry args={[FRAME_WIDTH - 0.18, FRAME_HEIGHT - 0.18]} />
-        <meshStandardMaterial color={trim} roughness={0.4} metalness={0.25} />
+        <meshStandardMaterial
+          color={trim}
+          roughness={0.4}
+          metalness={0.25}
+          emissive={sheetTheme ? sheetTheme.glowColor : "#000000"}
+          emissiveIntensity={sheetTheme && !isAward ? sheetTheme.glowIntensity : 0}
+        />
       </mesh>
 
       <Suspense fallback={null}>

@@ -11,6 +11,15 @@ const TRIBUTE_TAGLINES: Record<ExhibitType, string> = {
 
 import { groupIntoRooms } from "@/lib/museum/layout";
 import { RoomMuseumScene } from "@/components/museum/RoomMuseumScene";
+import { FREEDOM_STRUGGLE_THEME } from "@/lib/museum/museumPalette";
+
+// Room Beautification Phase 2 - warm-cream re-theme, scoped to this one
+// exhibit's slug only (see FREEDOM_STRUGGLE_THEME's doc comment). Every
+// other exhibit gets `undefined` and renders with the shared defaults,
+// unchanged.
+const ROOM_THEME_BY_SLUG: Record<string, typeof FREEDOM_STRUGGLE_THEME> = {
+  "indias-freedom-struggle": FREEDOM_STRUGGLE_THEME,
+};
 
 interface MuseumPageProps {
   params: Promise<{ slug: string }>;
@@ -83,6 +92,7 @@ export default async function MuseumPage({ params }: MuseumPageProps) {
       exhibitTitle={exhibit.title}
       exhibitTagline={TRIBUTE_TAGLINES[exhibit.type]}
       profile={profile}
+      roomTheme={ROOM_THEME_BY_SLUG[slug]}
     />
   );
 }

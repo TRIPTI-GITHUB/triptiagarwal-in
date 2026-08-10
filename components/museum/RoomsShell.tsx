@@ -22,10 +22,13 @@ import {
   MAT_COLOR,
   PILLAR_COLOR,
   MUSEUM_GOLD,
+  MUSEUM_GOLD_LIGHT,
+  MUSEUM_CHARCOAL,
   HIGH_CONTRAST_WALL_COLOR,
   HIGH_CONTRAST_CEILING_COLOR,
   HIGH_CONTRAST_FLOOR_COLOR,
   HIGH_CONTRAST_TRIM,
+  type RoomTheme,
 } from "@/lib/museum/museumPalette";
 import {
   type MuseumRoom,
@@ -46,6 +49,11 @@ interface RoomsShellProps {
   profile?: Profile | null;
   highContrast?: boolean;
   isTouch?: boolean;
+  // Room Beautification Phase 2 - per-exhibit palette override (e.g.
+  // "India's Freedom Struggle"'s warm-cream re-theme). Undefined for
+  // every other exhibit, which keeps reading the shared WALL_COLOR/
+  // CEILING_COLOR/FLOOR_COLOR/BASEBOARD_COLOR defaults above unchanged.
+  roomTheme?: RoomTheme;
 }
 
 const BASEBOARD_HEIGHT = 0.22;
@@ -130,7 +138,7 @@ function Pillar({ x, z, pillarColor, capColor }: { x: number; z: number; pillarC
  * beside every doorway, and every room's floor, ceiling, walls,
  * baseboard/moulding trim, and mounted sheets.
  */
-export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile, highContrast, isTouch }: RoomsShellProps) {
+export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile, highContrast, isTouch, roomTheme }: RoomsShellProps) {
   const numRooms = rooms.length;
   const frontZ = foyerFrontZ();
   const backZ = exitWallZ(numRooms - 1);
@@ -138,12 +146,28 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile, highC
   const depth = frontZ - backZ;
   const half = ROOM_SIZE / 2;
 
-  const wallColor = highContrast ? HIGH_CONTRAST_WALL_COLOR : WALL_COLOR;
-  const ceilingColor = highContrast ? HIGH_CONTRAST_CEILING_COLOR : CEILING_COLOR;
-  const floorColor = highContrast ? HIGH_CONTRAST_FLOOR_COLOR : FLOOR_COLOR;
-  const baseboardColor = highContrast ? "#1A1A1A" : BASEBOARD_COLOR;
+  const wallColor = highContrast ? HIGH_CONTRAST_WALL_COLOR : roomTheme ? roomTheme.wallColor : WALL_COLOR;
+  const ceilingColor = highContrast ? HIGH_CONTRAST_CEILING_COLOR : roomTheme ? roomTheme.ceilingColor : CEILING_COLOR;
+  const floorColor = highContrast ? HIGH_CONTRAST_FLOOR_COLOR : roomTheme ? roomTheme.floorColor : FLOOR_COLOR;
+  const baseboardColor = highContrast ? "#1A1A1A" : roomTheme ? roomTheme.baseboardColor : BASEBOARD_COLOR;
   const trimColor = highContrast ? HIGH_CONTRAST_TRIM : MOULDING_COLOR;
   const pillarCapColor = highContrast ? HIGH_CONTRAST_TRIM : MUSEUM_GOLD;
+
+  // RoomFrame's floating heading text has no backing plate, so a
+  // light-wall theme needs a dark-on-light color flip - see RoomFrame's
+  // `sheetTheme` prop doc. Undefined (RoomFrame falls back to its own
+  // gold-on-dark default) whenever high contrast is on or no roomTheme
+  // is set, so every other exhibit's rendering is byte-for-byte
+  // unchanged.
+  const sheetTheme =
+    !highContrast && roomTheme
+      ? {
+          headingColor: MUSEUM_CHARCOAL,
+          headingOutline: MUSEUM_GOLD_LIGHT,
+          glowColor: roomTheme.sheetGlowColor,
+          glowIntensity: roomTheme.sheetGlowIntensity,
+        }
+      : undefined;
 
   const placements = getFramePlacements(rooms);
   const hasFeaturedSheets = rooms.some((room) => room.sheets.some((sheet) => sheet.featured));
@@ -330,6 +354,7 @@ export function RoomsShell({ rooms, exhibitTitle, exhibitTagline, profile, highC
           rotationY={p.rotationY}
           highContrast={highContrast}
           simplified={isTouch}
+          sheetTheme={sheetTheme}
         />
       ))}
     </group>

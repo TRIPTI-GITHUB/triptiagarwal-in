@@ -34,7 +34,7 @@ import type { MuseumModeChoice } from "@/components/museum/ModeChoicePoster";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
 import { useReducedMotion } from "@/lib/museum/useReducedMotion";
 import { useSyncedLocalStorage } from "@/lib/museum/useSyncedLocalStorage";
-import { getRoomLightMood } from "@/lib/museum/museumPalette";
+import { getRoomLightMood, getThemedRoomLightMood, type RoomTheme } from "@/lib/museum/museumPalette";
 
 const TEXT_SCALE_VALUES: Record<string, string> = { default: "100%", large: "115%", largest: "130%" };
 const TEXT_SCALE_STORAGE_KEY = "museum-text-scale";
@@ -89,6 +89,11 @@ interface RoomMuseumSceneProps {
   exhibitTitle?: string;
   exhibitTagline?: string;
   profile?: Profile | null;
+  // Room Beautification Phase 2 - per-exhibit palette + lighting-mood
+  // override (e.g. "India's Freedom Struggle"'s warm-cream re-theme).
+  // Undefined for every other exhibit, which keeps the scene's fog/
+  // hemisphere/ambient/per-room light values exactly as they were.
+  roomTheme?: RoomTheme;
 }
 
 /**
@@ -114,7 +119,7 @@ interface RoomMuseumSceneProps {
  * moving to the next; the Minimap's gold guide marker is the "gentle
  * indicator if they wander" rather than a separate compass overlay.
  */
-export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }: RoomMuseumSceneProps) {
+export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile, roomTheme }: RoomMuseumSceneProps) {
   const isTouch = useIsTouchDevice();
   const touchMoveRef = useRef({ x: 0, y: 0 });
   const touchLookRef = useRef({ x: 0, y: 0 });
@@ -475,11 +480,35 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
   return (
     <div className="fixed inset-0 z-[60] bg-black">
       <Canvas camera={{ position: lobbySpawnPosition(), fov: isTouch ? 52 : 60 }}>
-        <fog attach="fog" args={highContrast ? ["#8892a0", 12, 40] : ["#241F1A", 8, 26]} />
-        <hemisphereLight args={highContrast ? ["#ffffff", "#8892a0", 0.75] : ["#F2EDE3", "#3A342C", 0.35]} />
-        <ambientLight intensity={highContrast ? 0.75 : 0.3} color={highContrast ? "#ffffff" : "#F2EDE3"} />
+        <fog
+          attach="fog"
+          args={
+            highContrast
+              ? ["#8892a0", 12, 40]
+              : roomTheme
+              ? [roomTheme.fogColor, roomTheme.fogNear, roomTheme.fogFar]
+              : ["#241F1A", 8, 26]
+          }
+        />
+        <hemisphereLight
+          args={
+            highContrast
+              ? ["#ffffff", "#8892a0", 0.75]
+              : roomTheme
+              ? [roomTheme.hemisphereSky, roomTheme.hemisphereGround, roomTheme.hemisphereIntensity]
+              : ["#F2EDE3", "#3A342C", 0.35]
+          }
+        />
+        <ambientLight
+          intensity={highContrast ? 0.75 : roomTheme ? roomTheme.ambientIntensity : 0.3}
+          color={highContrast ? "#ffffff" : roomTheme ? roomTheme.ambientColor : "#F2EDE3"}
+        />
         {rooms.map((_, i) => {
-          const mood = getRoomLightMood(i, highContrast);
+          const mood = highContrast
+            ? getRoomLightMood(i, true)
+            : roomTheme
+            ? getThemedRoomLightMood(roomTheme, i)
+            : getRoomLightMood(i, false);
           const lightPosition: [number, number, number] = [0, ROOM_HEIGHT - 0.4, roomCenterZ(i)];
           return (
             <group key={"room-light-" + i}>
@@ -505,6 +534,7 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile }
           profile={profile}
           highContrast={highContrast}
           isTouch={isTouch}
+          roomTheme={roomTheme}
         />
         <MinimapTracker poseRef={poseRef} />
         <DakCompanion
