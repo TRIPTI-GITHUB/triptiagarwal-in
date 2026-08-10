@@ -27,3 +27,15 @@ create table if not exists public.site_content (
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+
+-- Public content, same read/write posture as profiles/exhibits/blog_posts
+-- (RLS enabled there via the Supabase dashboard, not captured in this
+-- repo's migration history) - readable by anyone via the anon key,
+-- writable only via the Supabase dashboard / service role.
+alter table public.site_content enable row level security;
+
+create policy "site_content is publicly readable"
+  on public.site_content
+  for select
+  to anon, authenticated
+  using (true);
