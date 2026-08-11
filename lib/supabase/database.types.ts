@@ -112,6 +112,28 @@ export interface Exhibit {
   published: boolean;
   created_at: string;
   updated_at: string;
+  // museum-v2 (/museum-v2) only - wing numbering/signage order for the
+  // new lobby's Entry/Exit arches. Nullable; falls back to created_at
+  // order when unset. The existing /museum route never reads this.
+  wing_order: number | null;
+}
+
+/**
+ * LobbyPhoto / MuseumV2Content
+ * museum-v2 (/museum-v2) only - the new lobby's photo wall content.
+ * Mirrors the shape stored in museum_v2_content.lobby_photos.
+ */
+export interface LobbyPhoto {
+  url: string;
+  alt: string;
+  position: number;
+}
+
+export interface MuseumV2Content {
+  id: string;
+  lobby_photos: LobbyPhoto[] | null;
+  created_at: string;
+  updated_at: string;
 }
 
 /**
