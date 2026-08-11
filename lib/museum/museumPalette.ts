@@ -11,10 +11,14 @@
  * DesignSystem.md's original hues remain the mood reference, not a
  * second live spec.
  *
- * "The Reliquary Hall" direction: a warmer, dimmer archive rather than
- * the previous pale, evenly-lit showroom - architecture/material
- * constants below (walls, floor, wood, stone) support that mood and
- * are not brand tokens themselves.
+ * "Warm gallery" direction (Room Beautification Phase 2): every
+ * exhibit's hall uses a warm cream/off-white base (walls, ceiling, a
+ * honey-wood floor, charcoal grounding trim) rather than the earlier
+ * "Reliquary Hall" dark-archive palette - that dark palette is
+ * retired, not kept around as an alternate. Per-exhibit distinctness
+ * (Design Doc section 8's "different ambient tone per room") now comes
+ * from a small ROOM_ACCENTS lookup (below) that varies only the
+ * lighting's color undertone, not the architecture colors.
  */
 
 // --- Brand anchor (matches globals.css's --color-brand-*) ---
@@ -27,10 +31,15 @@ export const MUSEUM_CREAM = "#FAF7F2"; // brand-cream / parchment
 export const MUSEUM_OFFWHITE = "#F2EDE3"; // text-on-dark - never pure white, reads "archive" not "UI"
 
 // --- Architecture / staging materials (not brand tokens) ---
-export const WALL_COLOR = "#2E2924";
-export const CEILING_COLOR = "#453E33";
-export const FLOOR_COLOR = "#2A2118";
-export const BASEBOARD_COLOR = "#1C1712";
+// Warm cream gallery walls/ceiling, a honey-wood floor, and
+// brand-charcoal grounding trim - every exhibit's hall, not an
+// override for one. Anchored close to brand-cream (#FAF7F2) but not
+// identical to it, so the walls read as painted gallery plaster rather
+// than a flat UI background.
+export const WALL_COLOR = "#F1E7D6";
+export const CEILING_COLOR = "#F8F2E6";
+export const FLOOR_COLOR = "#8A6B47";
+export const BASEBOARD_COLOR = MUSEUM_CHARCOAL;
 export const MOULDING_COLOR = MUSEUM_GOLD;
 export const MAT_COLOR = "#6E2424";
 export const PILLAR_COLOR = "#C9BBA0"; // aged limestone
@@ -38,6 +47,33 @@ export const FRAME_WOOD_COLOR = "#4A3018"; // dark walnut
 export const VITRINE_GLASS_COLOR = MUSEUM_TEAL;
 export const AWARD_GLOW_COLOR = "#F0C75E"; // kept distinct from brand gold, deliberately
 export const WAX_SEAL_COLOR = "#6E2424"; // curator's-note tell, echoes the mat/rug red
+
+// Ambient fill (RoomMuseumScene's hemisphereLight/ambientLight/fog) -
+// bright enough that no surface reads as pure black in shadow, per
+// "museum-quality presentation, not flat or washed out."
+export const HEMISPHERE_SKY = "#FFF7E8";
+export const HEMISPHERE_INTENSITY = 1.1;
+export const AMBIENT_COLOR = MUSEUM_OFFWHITE;
+export const AMBIENT_INTENSITY = 1.0;
+export const FOG_COLOR = "#EDE0C8";
+export const FOG_NEAR = 14;
+export const FOG_FAR = 44;
+
+// Faint "vitrine spotlight" glow applied to every non-award sheet's
+// existing gold trim mesh (RoomFrame) - an emissive tweak on
+// already-rendered geometry rather than an extra plane or a real
+// per-sheet light (measured cost: zero extra frame-rate impact vs. a
+// real per-sheet light, which would be a genuine risk at a 24-sheet
+// exhibit). Deliberately fainter than the award-sheet glow so award
+// sheets still stand out above regular collection sheets.
+export const SHEET_GLOW_COLOR = "#FFEAC0";
+export const SHEET_GLOW_INTENSITY = 0.35;
+
+// The floating sheet-heading text (RoomFrame) has no backing plate of
+// its own, so it needs a dark-on-light pairing against these light
+// walls - see RoomFrame's use of these two.
+export const SHEET_HEADING_COLOR = MUSEUM_CHARCOAL;
+export const SHEET_HEADING_OUTLINE = MUSEUM_GOLD_LIGHT;
 
 // --- High-contrast overrides (section 13 extension) ---
 // A flatter, brighter, more neutral preset used in place of the mood
@@ -50,106 +86,69 @@ export const HIGH_CONTRAST_TEXT_ON_DARK = "#FFFFFF";
 export const HIGH_CONTRAST_TRIM = "#FFD966";
 
 /**
- * getRoomLightMood
- * Deepening warmth/dimness the further into the hall a room sits -
- * evokes progression into the archive without needing per-exhibit
- * theme data (a real per-wing color shift, per Design Doc section 8,
- * needs a schema field this data model doesn't have yet - deferred).
- * High contrast collapses this to one flat, bright preset everywhere.
+ * RoomAccent
+ * The one thing that still varies per exhibit: a subtle lighting
+ * undertone (hemisphere ground bounce + the room point-lights' color),
+ * giving each gallery its own character within the shared warm-cream
+ * base per Design Doc section 8's "different ambient tone per room" -
+ * without touching wall/floor/ceiling colors, which stay uniform.
  */
-export function getRoomLightMood(roomIndex: number, highContrast: boolean): { color: string; intensity: number } {
-  if (highContrast) return { color: "#FFFFFF", intensity: 1.7 };
-  const depth = Math.min(roomIndex, 4);
-  const warmth = depth / 4;
-  return {
-    color: warmth < 0.5 ? "#F2DFC0" : "#EAC896",
-    intensity: 1.05 - warmth * 0.2,
-  };
-}
-
-/**
- * RoomTheme
- * Per-exhibit override for RoomsShell's architecture colors and
- * RoomMuseumScene's ambient lighting mood, so a single exhibit can be
- * re-themed (Room Beautification Phase 2 - "India's Freedom Struggle")
- * without touching WALL_COLOR/CEILING_COLOR/FLOOR_COLOR/BASEBOARD_COLOR
- * or getRoomLightMood above, which every other exhibit's page still
- * reads directly. `highContrast` always wins over a RoomTheme - every
- * consumer (RoomsShell, RoomMuseumScene, RoomFrame) applies the
- * existing HIGH_CONTRAST_* override first and only falls back to the
- * theme when high contrast is off.
- */
-export interface RoomTheme {
-  wallColor: string;
-  ceilingColor: string;
-  floorColor: string;
-  baseboardColor: string;
-  fogColor: string;
-  fogNear: number;
-  fogFar: number;
-  hemisphereSky: string;
+export interface RoomAccent {
   hemisphereGround: string;
-  hemisphereIntensity: number;
-  ambientColor: string;
-  ambientIntensity: number;
-  // Plain data, not a function - RoomTheme crosses from the exhibit
-  // page (Server Component) to RoomMuseumScene (Client Component) as a
-  // prop, and functions can't be serialized across that boundary. See
-  // getThemedRoomLightMood below, which mirrors getRoomLightMood's
-  // depth-based falloff shape using these fields.
   lightMoodNearColor: string;
   lightMoodFarColor: string;
-  lightMoodBaseIntensity: number;
-  lightMoodFalloffPerRoom: number;
-  // "Vitrine spotlight" glow applied to every non-award sheet's
-  // existing gold trim mesh (RoomFrame) - an emissive tweak on
-  // already-rendered geometry rather than an extra plane or a real
-  // per-sheet light, since this exhibit alone has 24 mounted sheets:
-  // 24 extra draw calls or live lights would be a real frame-rate
-  // risk. Kept deliberately fainter than the existing award-sheet glow
-  // so award sheets still stand out above regular collection sheets.
-  sheetGlowColor: string;
-  sheetGlowIntensity: number;
 }
 
-// "India's Freedom Struggle" (exhibit slug: indias-freedom-struggle) -
-// warm cream/off-white gallery re-theme, replacing the dark "Reliquary
-// Hall" mood for this one exhibit's hall only. Every other exhibit
-// (e.g. Floral Melodies) keeps reading WALL_COLOR/CEILING_COLOR/
-// FLOOR_COLOR/BASEBOARD_COLOR/getRoomLightMood above unchanged.
-export const FREEDOM_STRUGGLE_THEME: RoomTheme = {
-  wallColor: "#F1E7D6",
-  ceilingColor: "#F8F2E6",
-  floorColor: "#8A6B47",
-  baseboardColor: MUSEUM_CHARCOAL,
-  fogColor: "#EDE0C8",
-  fogNear: 14,
-  fogFar: 44,
-  hemisphereSky: "#FFF7E8",
+// The default accent (warm gold) - what "India's Freedom Struggle"
+// originally shipped with, and what any exhibit not listed in
+// ROOM_ACCENTS below gets automatically, including future ones.
+export const DEFAULT_ROOM_ACCENT: RoomAccent = {
   hemisphereGround: MUSEUM_GOLD_LIGHT,
-  hemisphereIntensity: 1.1,
-  ambientColor: MUSEUM_OFFWHITE,
-  ambientIntensity: 1.0,
   lightMoodNearColor: "#FFF3DA",
   lightMoodFarColor: "#FCE8C2",
-  lightMoodBaseIntensity: 1.7,
-  lightMoodFalloffPerRoom: 0.07,
-  sheetGlowColor: "#FFEAC0",
-  sheetGlowIntensity: 0.35,
 };
 
+// Curated per-exhibit variants, keyed by exhibit slug. Add an entry
+// here to give a specific gallery its own undertone; every other
+// exhibit (current or future) falls back to DEFAULT_ROOM_ACCENT via
+// getRoomAccent below.
+export const ROOM_ACCENTS: Record<string, RoomAccent> = {
+  // A soft sage undertone (drawing on brand-teal's family, much
+  // paler) - fitting for a floral/nature exhibit, and legible as
+  // "different room" from Freedom Struggle's warmer gold without
+  // going cold/blue.
+  "floral-melodies": {
+    hemisphereGround: "#CFE0CE",
+    lightMoodNearColor: "#F3F6EC",
+    lightMoodFarColor: "#E6EEDD",
+  },
+};
+
+export function getRoomAccent(slug: string): RoomAccent {
+  return ROOM_ACCENTS[slug] ?? DEFAULT_ROOM_ACCENT;
+}
+
+const LIGHT_MOOD_BASE_INTENSITY = 1.7;
+const LIGHT_MOOD_FALLOFF_PER_ROOM = 0.07;
+
 /**
- * getThemedRoomLightMood
- * RoomTheme's equivalent of getRoomLightMood above - same depth-based
- * falloff shape (deepening warmth/dimness the further into the hall),
- * driven by a theme's plain-data fields instead of a hardcoded curve,
- * so RoomMuseumScene can call one or the other based on whether the
- * current exhibit has a RoomTheme.
+ * getRoomLightMood
+ * Per-room point-light color/intensity, tinted by the exhibit's
+ * RoomAccent - warmth/dimness still deepens slightly further into the
+ * hall (evokes progression without needing per-room theme data), but
+ * starting from a bright, warm-white/gold base rather than the old
+ * dim archive curve. High contrast collapses this to one flat, bright
+ * preset regardless of accent.
  */
-export function getThemedRoomLightMood(theme: RoomTheme, roomIndex: number): { color: string; intensity: number } {
+export function getRoomLightMood(
+  roomIndex: number,
+  highContrast: boolean,
+  accent: RoomAccent = DEFAULT_ROOM_ACCENT
+): { color: string; intensity: number } {
+  if (highContrast) return { color: "#FFFFFF", intensity: 1.7 };
   const depth = Math.min(roomIndex, 3);
   return {
-    color: depth < 2 ? theme.lightMoodNearColor : theme.lightMoodFarColor,
-    intensity: theme.lightMoodBaseIntensity - depth * theme.lightMoodFalloffPerRoom,
+    color: depth < 2 ? accent.lightMoodNearColor : accent.lightMoodFarColor,
+    intensity: LIGHT_MOOD_BASE_INTENSITY - depth * LIGHT_MOOD_FALLOFF_PER_ROOM,
   };
 }

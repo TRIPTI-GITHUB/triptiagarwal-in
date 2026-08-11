@@ -34,7 +34,18 @@ import type { MuseumModeChoice } from "@/components/museum/ModeChoicePoster";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
 import { useReducedMotion } from "@/lib/museum/useReducedMotion";
 import { useSyncedLocalStorage } from "@/lib/museum/useSyncedLocalStorage";
-import { getRoomLightMood, getThemedRoomLightMood, type RoomTheme } from "@/lib/museum/museumPalette";
+import {
+  getRoomLightMood,
+  DEFAULT_ROOM_ACCENT,
+  type RoomAccent,
+  HEMISPHERE_SKY,
+  HEMISPHERE_INTENSITY,
+  AMBIENT_COLOR,
+  AMBIENT_INTENSITY,
+  FOG_COLOR,
+  FOG_NEAR,
+  FOG_FAR,
+} from "@/lib/museum/museumPalette";
 
 const TEXT_SCALE_VALUES: Record<string, string> = { default: "100%", large: "115%", largest: "130%" };
 const TEXT_SCALE_STORAGE_KEY = "museum-text-scale";
@@ -89,11 +100,13 @@ interface RoomMuseumSceneProps {
   exhibitTitle?: string;
   exhibitTagline?: string;
   profile?: Profile | null;
-  // Room Beautification Phase 2 - per-exhibit palette + lighting-mood
-  // override (e.g. "India's Freedom Struggle"'s warm-cream re-theme).
-  // Undefined for every other exhibit, which keeps the scene's fog/
-  // hemisphere/ambient/per-room light values exactly as they were.
-  roomTheme?: RoomTheme;
+  // Every exhibit's hall uses the shared warm-cream base (museumPalette
+  // constants) - `roomAccent` is the one thing that still varies per
+  // exhibit, a subtle lighting undertone (Design Doc section 8's
+  // "different ambient tone per room"). Defaults to the warm-gold
+  // accent so any exhibit page that doesn't resolve one explicitly
+  // still renders correctly.
+  roomAccent?: RoomAccent;
 }
 
 /**
@@ -119,7 +132,13 @@ interface RoomMuseumSceneProps {
  * moving to the next; the Minimap's gold guide marker is the "gentle
  * indicator if they wander" rather than a separate compass overlay.
  */
-export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile, roomTheme }: RoomMuseumSceneProps) {
+export function RoomMuseumScene({
+  rooms,
+  exhibitTitle,
+  exhibitTagline,
+  profile,
+  roomAccent = DEFAULT_ROOM_ACCENT,
+}: RoomMuseumSceneProps) {
   const isTouch = useIsTouchDevice();
   const touchMoveRef = useRef({ x: 0, y: 0 });
   const touchLookRef = useRef({ x: 0, y: 0 });
@@ -480,35 +499,20 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile, 
   return (
     <div className="fixed inset-0 z-[60] bg-black">
       <Canvas camera={{ position: lobbySpawnPosition(), fov: isTouch ? 52 : 60 }}>
-        <fog
-          attach="fog"
-          args={
-            highContrast
-              ? ["#8892a0", 12, 40]
-              : roomTheme
-              ? [roomTheme.fogColor, roomTheme.fogNear, roomTheme.fogFar]
-              : ["#241F1A", 8, 26]
-          }
-        />
+        <fog attach="fog" args={highContrast ? ["#8892a0", 12, 40] : [FOG_COLOR, FOG_NEAR, FOG_FAR]} />
         <hemisphereLight
           args={
             highContrast
               ? ["#ffffff", "#8892a0", 0.75]
-              : roomTheme
-              ? [roomTheme.hemisphereSky, roomTheme.hemisphereGround, roomTheme.hemisphereIntensity]
-              : ["#F2EDE3", "#3A342C", 0.35]
+              : [HEMISPHERE_SKY, roomAccent.hemisphereGround, HEMISPHERE_INTENSITY]
           }
         />
         <ambientLight
-          intensity={highContrast ? 0.75 : roomTheme ? roomTheme.ambientIntensity : 0.3}
-          color={highContrast ? "#ffffff" : roomTheme ? roomTheme.ambientColor : "#F2EDE3"}
+          intensity={highContrast ? 0.75 : AMBIENT_INTENSITY}
+          color={highContrast ? "#ffffff" : AMBIENT_COLOR}
         />
         {rooms.map((_, i) => {
-          const mood = highContrast
-            ? getRoomLightMood(i, true)
-            : roomTheme
-            ? getThemedRoomLightMood(roomTheme, i)
-            : getRoomLightMood(i, false);
+          const mood = getRoomLightMood(i, highContrast, roomAccent);
           const lightPosition: [number, number, number] = [0, ROOM_HEIGHT - 0.4, roomCenterZ(i)];
           return (
             <group key={"room-light-" + i}>
@@ -534,7 +538,6 @@ export function RoomMuseumScene({ rooms, exhibitTitle, exhibitTagline, profile, 
           profile={profile}
           highContrast={highContrast}
           isTouch={isTouch}
-          roomTheme={roomTheme}
         />
         <MinimapTracker poseRef={poseRef} />
         <DakCompanion
