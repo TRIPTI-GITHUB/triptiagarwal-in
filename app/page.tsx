@@ -44,16 +44,7 @@ export default async function Home() {
 
   return (
     <>
-      <Hero
-        imageUrl={homeHero?.imageUrl}
-        imageAlt={homeHero?.alt}
-        heading={homeHero?.heading || "Tripti Agarwal Heritage Lab"}
-        tagline={homeHero?.tagline || "Preserving History. Inspiring Curiosity."}
-        ctaHref="/museum"
-        ctaLabel="Step Into the Museum"
-        secondaryHref="/exhibits"
-        secondaryLabel="or explore the collection"
-      />
+      <Hero imageUrl={homeHero?.imageUrl} imageAlt={homeHero?.alt} />
 
       <Section surface="white">
         <Container>
