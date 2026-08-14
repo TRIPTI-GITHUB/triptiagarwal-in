@@ -19,6 +19,9 @@ interface RoomMobileRigV2Props {
   onSelectSheet: (sheet: ExhibitSheet) => void;
   onFloorTap: (point: THREE.Vector3) => void;
   paused?: boolean;
+  // LOBBY REMOVED (2026-08-13): see RoomFreeRoamV2's identical prop doc
+  // - orients the camera toward Wing 1's first sheet once, on mount.
+  initialLookAt?: [number, number, number];
 }
 
 /**
@@ -38,6 +41,7 @@ export function RoomMobileRigV2({
   onSelectSheet,
   onFloorTap,
   paused,
+  initialLookAt,
 }: RoomMobileRigV2Props) {
   const { camera, gl, scene } = useThree();
   const raycaster = new THREE.Raycaster();
@@ -50,6 +54,10 @@ export function RoomMobileRigV2({
     // rather than silently inherited, since this is a new file.
     // eslint-disable-next-line react-hooks/immutability
     camera.rotation.order = "YXZ";
+    if (initialLookAt) {
+      camera.lookAt(new THREE.Vector3(...initialLookAt));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once on mount only, not on every initialLookAt identity change
   }, [camera]);
 
   /* eslint-disable react-hooks/immutability -- necessary r3f camera mutation, see rotation-order effect above */

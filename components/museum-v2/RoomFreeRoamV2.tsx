@@ -17,6 +17,10 @@ interface RoomFreeRoamV2Props {
   onFloorClick: (point: THREE.Vector3) => void;
   turnRef: MutableRefObject<{ left: boolean; right: boolean }>;
   paused?: boolean;
+  // LOBBY REMOVED (2026-08-13): the visitor now spawns at Wing 1's
+  // first sheet rather than in the lobby facing the wings - orients
+  // the camera toward it once, on mount, via THREE's own lookAt.
+  initialLookAt?: [number, number, number];
 }
 
 /**
@@ -31,7 +35,7 @@ interface RoomFreeRoamV2Props {
  * is still only one movement-execution system, just a second trigger
  * for it (mouse/touch raycast, alongside the existing keyboard one).
  */
-export function RoomFreeRoamV2({ numWings, onSelectSheet, onFloorClick, turnRef, paused }: RoomFreeRoamV2Props) {
+export function RoomFreeRoamV2({ numWings, onSelectSheet, onFloorClick, turnRef, paused, initialLookAt }: RoomFreeRoamV2Props) {
   const { camera, gl, scene } = useThree();
 
   const keys = useRef({
@@ -61,6 +65,10 @@ export function RoomFreeRoamV2({ numWings, onSelectSheet, onFloorClick, turnRef,
     // rather than silently inherited, since this is a new file.
     // eslint-disable-next-line react-hooks/immutability
     camera.rotation.order = "YXZ";
+    if (initialLookAt) {
+      camera.lookAt(new THREE.Vector3(...initialLookAt));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once on mount only, not on every initialLookAt identity change
   }, [camera]);
 
   useEffect(() => {

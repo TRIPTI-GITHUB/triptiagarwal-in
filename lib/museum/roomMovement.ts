@@ -1,6 +1,9 @@
 import * as THREE from "three";
 import { EYE_HEIGHT } from "@/lib/museum/roomConstants";
-import { getOuterBounds, getDoorwayObstacles, getLobbyFurnitureObstacles, type Obstacle } from "@/lib/museum/layout";
+import { getOuterBounds, getDoorwayObstacles, type Obstacle } from "@/lib/museum/layout";
+// LOBBY REMOVED (2026-08-13): getLobbyFurnitureObstacles is no longer
+// imported/called here - the foyer it protects isn't walkable anymore.
+// Restore the import above and the spread below to bring it back.
 
 function collides(x: number, z: number, obstacles: Obstacle[]): boolean {
   return obstacles.some(
@@ -37,7 +40,7 @@ export function moveCameraInRooms(
   delta.addScaledVector(right, moveX * distance);
 
   const bounds = getOuterBounds(numRooms);
-  const obstacles = [...getDoorwayObstacles(numRooms), ...getLobbyFurnitureObstacles()];
+  const obstacles = [...getDoorwayObstacles(numRooms) /* , ...getLobbyFurnitureObstacles() */];
 
   let nextX = camera.position.x + delta.x;
   let nextZ = camera.position.z + delta.z;

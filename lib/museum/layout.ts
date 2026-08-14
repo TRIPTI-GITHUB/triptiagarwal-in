@@ -38,6 +38,12 @@ export function foyerFrontZ(): number {
  * Where a visitor spawns/returns to in the lobby - shared by the
  * Canvas's initial camera position and the teleport menu's "Lobby"
  * destination (Phase 6a), so the two can never drift apart.
+ *
+ * LOBBY REMOVED (2026-08-13): nothing currently calls these two
+ * functions - the Canvas now spawns at the first sheet's tour-path
+ * position instead (see RoomMuseumScene.tsx), and the Teleport menu no
+ * longer lists a "Lobby" destination. Left fully intact, unused, so
+ * the lobby can be restored later by wiring these back in.
  */
 export function lobbySpawnPosition(): [number, number, number] {
   return [0, EYE_HEIGHT, foyerFrontZ() - 1.5];
@@ -100,16 +106,19 @@ export interface Obstacle {
 
 /**
  * getOuterBounds
- * The full hall's outer boundary - front of Room 1 to the back of the
- * last room, and the left/right side walls (continuous for the whole
- * hall's length).
+ * The full hall's outer boundary. LOBBY REMOVED (2026-08-13): visitors
+ * now spawn directly inside Room 1, so the walkable area's front edge
+ * is Room 1's own entry wall (entryWallZ(0)), not the foyer's outer
+ * edge (foyerFrontZ()) - the foyer itself is no longer walkable at
+ * all. To restore the lobby, change maxZ back to
+ * `foyerFrontZ() - WALL_MARGIN`.
  */
 export function getOuterBounds(numRooms: number) {
   const half = ROOM_SIZE / 2;
   return {
     minX: -half + WALL_MARGIN,
     maxX: half - WALL_MARGIN,
-    maxZ: foyerFrontZ() - WALL_MARGIN,
+    maxZ: entryWallZ(0) - WALL_MARGIN,
     minZ: exitWallZ(numRooms - 1) + WALL_MARGIN,
   };
 }
@@ -173,6 +182,10 @@ const RECEPTION_OFFSET = { minX: -1.2, maxX: 1.8, minZ: -0.8, maxZ: 0.6 };
  * reception counter - a visitor can walk up to and around each piece
  * but never through it, per the "collision is core to believability"
  * requirement.
+ *
+ * LOBBY REMOVED (2026-08-13): no longer called from roomMovement.ts
+ * (the foyer these obstacles sit in isn't walkable anymore anyway).
+ * Left fully intact, unused, for easy restoration.
  */
 export function getLobbyFurnitureObstacles(): Obstacle[] {
   const m = FURNITURE_MARGIN;
@@ -284,9 +297,15 @@ export function buildTourPath(rooms: MuseumRoom[], scope: TourScope): TourPath {
   const stops: TourStop[] = [];
   const navigableIndices: number[] = [];
 
+  // LOBBY REMOVED (2026-08-13): the entrance stop used to sit in the
+  // foyer, in front of Room 1's doorway (entryWallZ(0) + TOUR_STANDOFF,
+  // i.e. outside the room). With the foyer no longer walkable, this
+  // stop is repositioned just inside Room 1 instead (entryWallZ(0) -
+  // TOUR_STANDOFF) so "continue tour from the entrance" always lands
+  // somewhere reachable. To restore, flip the sign back to `+`.
   stops.push({
     type: "entrance",
-    position: [0, EYE_HEIGHT, entryWallZ(0) + TOUR_STANDOFF],
+    position: [0, EYE_HEIGHT, entryWallZ(0) - TOUR_STANDOFF],
     lookAt: [0, EYE_HEIGHT, roomCenterZ(0)],
   });
   navigableIndices.push(stops.length - 1);

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import { Canvas } from "@react-three/fiber";
 import { RoomsShell } from "@/components/museum/RoomsShell";
 import { RoomFreeRoam } from "@/components/museum/RoomFreeRoam";
@@ -27,7 +28,11 @@ import { TeleportExecutor, type TeleportTarget } from "@/components/museum/Telep
 import { TeleportMenu, type TeleportDestination } from "@/components/museum/TeleportMenu";
 import { SettingsDrawer } from "@/components/museum/SettingsDrawer";
 import { CeilingFixture } from "@/components/museum/CeilingFixture";
-import { ReturnToLobbyButton } from "@/components/museum/ReturnToLobbyButton";
+// LOBBY REMOVED (2026-08-13): ReturnToLobbyButton teleported in-scene
+// to the lobby, which no longer exists. Left fully intact, unused, for
+// restoration - ExitMuseumButton (a real page navigation) replaces it.
+// import { ReturnToLobbyButton } from "@/components/museum/ReturnToLobbyButton";
+import { ExitMuseumButton } from "@/components/museum/ExitMuseumButton";
 import { FrontDeskSearch } from "@/components/museum/FrontDeskSearch";
 import { OrientationPrompt } from "@/components/museum/OrientationPrompt";
 import type { MuseumModeChoice } from "@/components/museum/ModeChoicePoster";
@@ -84,10 +89,15 @@ import {
   buildSheetLabels,
   describePoint,
   findNearestNavIndex,
+  // LOBBY REMOVED (2026-08-13): the visitor now spawns at the first
+  // sheet's tour-path stop instead of the lobby (see `spawnPoint`
+  // below) - lobbySpawnPosition/lobbySpawnLookAt are kept only as the
+  // fallback for the degenerate zero-points-of-interest case.
+  // foyerFrontZ is no longer used at all.
   lobbySpawnPosition,
   lobbySpawnLookAt,
   roomCenterZ,
-  foyerFrontZ,
+  // foyerFrontZ,
   getFramePlacements,
   type MuseumRoom,
   type TourScope,
@@ -112,10 +122,13 @@ interface RoomMuseumSceneProps {
 /**
  * RoomMuseumScene
  * Client Component - the room-based museum's entry point. Starts with a
- * full-screen WelcomeOverlay covering the entrance foyer; dismissing it
- * reveals the museum, already loaded behind it. Mode can be set either
- * via the top-right toggle or by clicking the ModeChoicePoster in the
- * foyer (handleModeSelect).
+ * full-screen WelcomeOverlay; dismissing it reveals the museum, already
+ * loaded behind it, with the visitor standing at the exhibit's first
+ * sheet (LOBBY REMOVED, 2026-08-13 - there is no entrance foyer to
+ * spawn in anymore, and no mode-choice poster; the visitor always
+ * starts in free-roam, the Minimap orients them, and Guided Tour mode
+ * stays reachable via TourControls). handleModeSelect is kept for that
+ * top-bar control, not for an in-scene poster.
  *
  * The exhibit vitrine viewer (ExhibitDolly + ExhibitModal) takes over the
  * camera whenever a sheet is selected - the active movement controller
@@ -139,12 +152,41 @@ export function RoomMuseumScene({
   profile,
   roomAccent = DEFAULT_ROOM_ACCENT,
 }: RoomMuseumSceneProps) {
+  const router = useRouter();
   const isTouch = useIsTouchDevice();
   const touchMoveRef = useRef({ x: 0, y: 0 });
   const touchLookRef = useRef({ x: 0, y: 0 });
   const tapRef = useRef({ x: 0, y: 0, pending: false });
   const turnRef = useRef({ left: false, right: false });
-  const poseRef = useRef<MinimapPose>({ x: 0, z: foyerFrontZ(), facingX: 0, facingZ: -1 });
+
+  // Moved ahead of poseRef (below) so spawnPosition/spawnLookAt can be
+  // computed in time to seed it. tourPath itself doesn't depend on
+  // anything declared later in this component.
+  const [tourScope, setTourScope] = useState<TourScope>("full");
+  const tourPath = useMemo(() => buildTourPath(rooms, tourScope), [rooms, tourScope]);
+  // tourPath.stops doesn't depend on scope (only navigableIndices does -
+  // every sheet always gets a stop) so it's already the exact sequence
+  // Phase 6a needs; reusing it here avoids building the stop graph a
+  // second time for keyboard nav and teleport.
+  const pointsOfInterest = useMemo(() => tourPath.stops.filter((stop) => stop.type !== "entrance"), [tourPath]);
+
+  // LOBBY REMOVED (2026-08-13): the visitor now spawns directly at the
+  // first point of interest (the exhibit's first sheet) instead of the
+  // lobby - falls back to the old lobby spawn only if an exhibit
+  // somehow has zero sheets.
+  const spawnPoint = pointsOfInterest[0];
+  const spawnPosition: [number, number, number] = spawnPoint ? spawnPoint.position : lobbySpawnPosition();
+  const spawnLookAt: [number, number, number] = spawnPoint ? spawnPoint.lookAt : lobbySpawnLookAt();
+  const spawnDX = spawnLookAt[0] - spawnPosition[0];
+  const spawnDZ = spawnLookAt[2] - spawnPosition[2];
+  const spawnFacingLen = Math.hypot(spawnDX, spawnDZ) || 1;
+
+  const poseRef = useRef<MinimapPose>({
+    x: spawnPosition[0],
+    z: spawnPosition[2],
+    facingX: spawnDX / spawnFacingLen,
+    facingZ: spawnDZ / spawnFacingLen,
+  });
   const dakPoseRef = useRef<DakLivePose | null>(null);
 
   const [selectedSheet, setSelectedSheet] = useState<ExhibitSheet | null>(null);
@@ -154,7 +196,6 @@ export function RoomMuseumScene({
   const [nearSheet, setNearSheet] = useState<ExhibitSheet | null>(null);
 
   const [tourMode, setTourMode] = useState(false);
-  const [tourScope, setTourScope] = useState<TourScope>("full");
   const [navIndex, setNavIndex] = useState(-1);
   const [dakArrivedAtStop, setDakArrivedAtStop] = useState(false);
   const [tourComplete, setTourComplete] = useState(false);
@@ -218,11 +259,11 @@ export function RoomMuseumScene({
     dakDismissedRef.current = dakDismissed;
   }, [dakDismissed]);
 
-  // One-time lobby greeting: fires once per session, shortly after the
+  // One-time greeting: fires once per session, shortly after the
   // visitor dismisses WelcomeOverlay. A ProximityTrigger doesn't fit
-  // here - the camera spawns inside the lobby, so there's no boundary
-  // to cross - `entered` is already the exact "visitor is now in the
-  // lobby" signal.
+  // here - the camera spawns already inside Room 1, at the first
+  // sheet, so there's no boundary to cross - `entered` is already the
+  // exact "visitor has arrived" signal.
   useEffect(() => {
     if (!entered || hasGreetedRef.current) return;
 
@@ -250,22 +291,16 @@ export function RoomMuseumScene({
   );
   const totalSheets = flatSheets.length;
 
-  const tourPath = useMemo(() => buildTourPath(rooms, tourScope), [rooms, tourScope]);
   const maxNavIndex = tourPath.navigableIndices.length - 2;
   const targetStopIndex = tourPath.navigableIndices[navIndex + 1] ?? tourPath.navigableIndices[0];
   const currentStop = tourMode ? tourPath.stops[targetStopIndex] : undefined;
 
-  // tourPath.stops doesn't depend on scope (only navigableIndices does -
-  // every sheet always gets a stop) so it's already the exact sequence
-  // Phase 6a needs; reusing it here avoids building the stop graph a
-  // second time for keyboard nav and teleport.
-  const pointsOfInterest = useMemo(() => tourPath.stops.filter((stop) => stop.type !== "entrance"), [tourPath]);
   const focusedPoint = focusedPoi !== null ? pointsOfInterest[focusedPoi] ?? null : null;
 
+  // LOBBY REMOVED (2026-08-13): dropped the "Lobby" destination (there's
+  // nothing to teleport back to) - every other destination is unchanged.
   const teleportDestinations = useMemo<TeleportDestination[]>(() => {
-    const destinations: TeleportDestination[] = [
-      { label: "Lobby", position: lobbySpawnPosition(), lookAt: lobbySpawnLookAt() },
-    ];
+    const destinations: TeleportDestination[] = [];
     tourPath.stops.forEach((stop) => {
       if (stop.type === "entrance") {
         destinations.push({ label: rooms[0]?.title ?? "Room 1", position: stop.position, lookAt: stop.lookAt });
@@ -472,10 +507,12 @@ export function RoomMuseumScene({
     setTeleportTarget(null);
   }
 
-  function handleReturnToLobby() {
-    setFocusedPoi(null);
-    setKeyboardMoveTarget(null);
-    setTeleportTarget({ position: lobbySpawnPosition(), lookAt: lobbySpawnLookAt() });
+  // LOBBY REMOVED (2026-08-13): handleReturnToLobby used to teleport the
+  // camera to the lobby. Replaced with a real page navigation back to
+  // the 2D exhibit listing, since there's no lobby to return to inside
+  // the scene anymore.
+  function handleExitMuseum() {
+    router.push("/museum");
   }
 
   function handleSearchSelect(stop: TourStop) {
@@ -490,7 +527,7 @@ export function RoomMuseumScene({
   useEffect(() => {
     function handleHomeKey(e: globalThis.KeyboardEvent) {
       if (e.key !== "Home" || viewerActive) return;
-      handleReturnToLobby();
+      handleExitMuseum();
     }
     window.addEventListener("keydown", handleHomeKey);
     return () => window.removeEventListener("keydown", handleHomeKey);
@@ -498,7 +535,7 @@ export function RoomMuseumScene({
 
   return (
     <div className="fixed inset-0 z-[60] bg-black">
-      <Canvas camera={{ position: lobbySpawnPosition(), fov: isTouch ? 52 : 60 }}>
+      <Canvas camera={{ position: spawnPosition, fov: isTouch ? 52 : 60 }}>
         <fog attach="fog" args={highContrast ? ["#8892a0", 12, 40] : [FOG_COLOR, FOG_NEAR, FOG_FAR]} />
         <hemisphereLight
           args={
@@ -594,6 +631,7 @@ export function RoomMuseumScene({
             onSelectSheet={openSheet}
             onSelectMode={handleModeSelect}
             paused={viewerActive}
+            initialLookAt={spawnLookAt}
           />
         ) : (
           <RoomFreeRoam
@@ -602,6 +640,7 @@ export function RoomMuseumScene({
             onSelectMode={handleModeSelect}
             turnRef={turnRef}
             paused={viewerActive}
+            initialLookAt={spawnLookAt}
           />
         )}
       </Canvas>
@@ -672,7 +711,7 @@ export function RoomMuseumScene({
       {!isTouch && !viewerActive && (
         <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none">
           <p className="text-white/70 text-xs bg-black/50 px-3 py-1 rounded-full">
-            W/S walk - A/D strafe - arrow keys, drag, or buttons to look - click a sheet to view it - Tab to browse by keyboard - Home to return to lobby
+            W/S walk - A/D strafe - arrow keys, drag, or buttons to look - click a sheet to view it - Tab to browse by keyboard - Home to exit museum
           </p>
         </div>
       )}
@@ -681,7 +720,7 @@ export function RoomMuseumScene({
 
       {!viewerActive && (
         <div className="absolute top-4 right-4 left-4 sm:left-auto z-10 flex flex-wrap items-center justify-end gap-2">
-          <ReturnToLobbyButton onReturn={handleReturnToLobby} />
+          <ExitMuseumButton />
           <FrontDeskSearch
             points={pointsOfInterest}
             sheetLabels={sheetLabels}

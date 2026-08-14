@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import { useRouter } from "next/navigation";
 import * as THREE from "three";
 import { Canvas } from "@react-three/fiber";
 import { LobbyHubShell } from "@/components/museum-v2/LobbyHubShell";
@@ -29,6 +30,7 @@ import { TeleportExecutor, type TeleportTarget } from "@/components/museum/Telep
 import { TeleportMenu, type TeleportDestination } from "@/components/museum/TeleportMenu";
 import { SettingsDrawer } from "@/components/museum/SettingsDrawer";
 import { CeilingFixture } from "@/components/museum/CeilingFixture";
+import { ExitMuseumButton } from "@/components/museum/ExitMuseumButton";
 import { useIsTouchDevice } from "@/lib/museum/useIsTouchDevice";
 import { useReducedMotion } from "@/lib/museum/useReducedMotion";
 import { useSyncedLocalStorage } from "@/lib/museum/useSyncedLocalStorage";
@@ -102,14 +104,38 @@ interface MuseumV2SceneProps {
  * tour caption/controls, the touch input widgets, KeyboardPointNav) -
  * only the spatial shell (LobbyHubShell/WingHallShell) and movement
  * rigs (RoomFreeRoamV2/RoomMobileRigV2) are new.
+ *
+ * LOBBY REMOVED (2026-08-13): the hub's furniture/photo wall are gone
+ * (LobbyHubShell), and the visitor spawns directly at Wing 1's first
+ * sheet instead of in the hub - the hub floor/walls/entry arches stay,
+ * since the wings still need to physically connect through it.
  */
 export function MuseumV2Scene({ wings, lobbyPhotos }: MuseumV2SceneProps) {
+  const router = useRouter();
   const isTouch = useIsTouchDevice();
   const touchMoveRef = useRef({ x: 0, y: 0 });
   const touchLookRef = useRef({ x: 0, y: 0 });
   const tapRef = useRef({ x: 0, y: 0, pending: false });
   const turnRef = useRef({ left: false, right: false });
-  const poseRef = useRef<MinimapPose>({ x: 0, z: lobbySpawnPosition()[2], facingX: 0, facingZ: -1 });
+
+  // Moved ahead of poseRef (below) so spawnPosition/spawnLookAt can be
+  // computed in time to seed it. Unlike v1, the first non-entrance stop
+  // here can be a wing's Entry-arch "doorway" stop, not a sheet - so
+  // this looks for the first actual sheet explicitly.
+  const pointsOfInterest = useMemo(() => buildWingPointsOfInterest(wings), [wings]);
+  const spawnPoint = pointsOfInterest.find((p) => p.type === "sheet") ?? pointsOfInterest[0];
+  const spawnPosition: [number, number, number] = spawnPoint ? spawnPoint.position : lobbySpawnPosition();
+  const spawnLookAt: [number, number, number] = spawnPoint ? spawnPoint.lookAt : lobbySpawnLookAt();
+  const spawnDX = spawnLookAt[0] - spawnPosition[0];
+  const spawnDZ = spawnLookAt[2] - spawnPosition[2];
+  const spawnFacingLen = Math.hypot(spawnDX, spawnDZ) || 1;
+
+  const poseRef = useRef<MinimapPose>({
+    x: spawnPosition[0],
+    z: spawnPosition[2],
+    facingX: spawnDX / spawnFacingLen,
+    facingZ: spawnDZ / spawnFacingLen,
+  });
   const dakPoseRef = useRef<DakLivePose | null>(null);
 
   const [selectedSheet, setSelectedSheet] = useState<ExhibitSheet | null>(null);
@@ -198,13 +224,13 @@ export function MuseumV2Scene({ wings, lobbyPhotos }: MuseumV2SceneProps) {
   const targetStopIndex = tourPath.navigableIndices[navIndex + 1] ?? tourPath.navigableIndices[0];
   const currentStop = tourMode ? tourPath.stops[targetStopIndex] : undefined;
 
-  const pointsOfInterest = useMemo(() => buildWingPointsOfInterest(wings), [wings]);
   const focusedPoint = focusedPoi !== null ? pointsOfInterest[focusedPoi] ?? null : null;
 
+  // LOBBY REMOVED (2026-08-13): dropped the "Lobby" destination (there's
+  // nothing to teleport back to) - Entry/Exit destinations per wing are
+  // unchanged, since the hub they lead to still exists.
   const teleportDestinations = useMemo<TeleportDestination[]>(() => {
-    const destinations: TeleportDestination[] = [
-      { label: "Lobby", position: lobbySpawnPosition(), lookAt: lobbySpawnLookAt() },
-    ];
+    const destinations: TeleportDestination[] = [];
     wings.forEach((wing) => {
       const entry = entryArchPosition(wing.index);
       destinations.push({
@@ -393,16 +419,18 @@ export function MuseumV2Scene({ wings, lobbyPhotos }: MuseumV2SceneProps) {
   function handleTeleportDone() {
     setTeleportTarget(null);
   }
-  function handleReturnToLobby() {
-    setFocusedPoi(null);
-    setKeyboardMoveTarget(null);
-    setTeleportTarget({ position: lobbySpawnPosition(), lookAt: lobbySpawnLookAt() });
+  // LOBBY REMOVED (2026-08-13): handleReturnToLobby used to teleport the
+  // camera to the hub. Replaced with a real page navigation back to
+  // the 2D exhibit listing - museum-v2 has no dedicated listing page of
+  // its own, so this goes to the same /museum as the existing route.
+  function handleExitMuseum() {
+    router.push("/museum");
   }
 
   useEffect(() => {
     function handleHomeKey(e: globalThis.KeyboardEvent) {
       if (e.key !== "Home" || viewerActive) return;
-      handleReturnToLobby();
+      handleExitMuseum();
     }
     window.addEventListener("keydown", handleHomeKey);
     return () => window.removeEventListener("keydown", handleHomeKey);
@@ -412,7 +440,7 @@ export function MuseumV2Scene({ wings, lobbyPhotos }: MuseumV2SceneProps) {
 
   return (
     <div className="fixed inset-0 z-[60] bg-black">
-      <Canvas camera={{ position: lobbySpawnPosition(), fov: isTouch ? 52 : 60 }}>
+      <Canvas camera={{ position: spawnPosition, fov: isTouch ? 52 : 60 }}>
         <fog attach="fog" args={highContrast ? ["#8892a0", 12, 40] : [FOG_COLOR, FOG_NEAR, FOG_FAR]} />
         <hemisphereLight
           args={highContrast ? ["#ffffff", "#8892a0", 0.75] : [HEMISPHERE_SKY, DEFAULT_ROOM_ACCENT.hemisphereGround, HEMISPHERE_INTENSITY]}
@@ -500,6 +528,7 @@ export function MuseumV2Scene({ wings, lobbyPhotos }: MuseumV2SceneProps) {
             onSelectSheet={openSheet}
             onFloorTap={handleFloorClick}
             paused={viewerActive}
+            initialLookAt={spawnLookAt}
           />
         ) : (
           <RoomFreeRoamV2
@@ -508,6 +537,7 @@ export function MuseumV2Scene({ wings, lobbyPhotos }: MuseumV2SceneProps) {
             onFloorClick={handleFloorClick}
             turnRef={turnRef}
             paused={viewerActive}
+            initialLookAt={spawnLookAt}
           />
         )}
       </Canvas>
@@ -561,7 +591,7 @@ export function MuseumV2Scene({ wings, lobbyPhotos }: MuseumV2SceneProps) {
         <div className="absolute top-4 left-1/2 -translate-x-1/2 pointer-events-none">
           <p className="text-white/70 text-xs bg-black/50 px-3 py-1 rounded-full">
             W/S walk - A/D strafe - arrow keys or drag to look - click the floor to walk there, click a sheet to view it - Tab to browse by
-            keyboard - Home to return to lobby
+            keyboard - Home to exit museum
           </p>
         </div>
       )}
@@ -570,6 +600,7 @@ export function MuseumV2Scene({ wings, lobbyPhotos }: MuseumV2SceneProps) {
 
       {!viewerActive && (
         <div className="absolute top-4 right-4 left-4 sm:left-auto z-10 flex flex-wrap items-center justify-end gap-2">
+          <ExitMuseumButton />
           <TeleportMenu destinations={teleportDestinations} onSelect={handleTeleportSelect} />
           <TourControls tourMode={tourMode} onToggleMode={toggleTourFromControls} />
           <SettingsDrawer

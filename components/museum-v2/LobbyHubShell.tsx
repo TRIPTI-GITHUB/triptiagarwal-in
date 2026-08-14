@@ -1,13 +1,17 @@
 "use client";
 
-import { Suspense } from "react";
+// LOBBY REMOVED (2026-08-13): Suspense/useTexture only backed the photo
+// wall (PhotoFrame, below) - left fully intact, unused, for restoration.
+// import { Suspense } from "react";
 import * as THREE from "three";
-import { useTexture } from "@react-three/drei";
+// import { useTexture } from "@react-three/drei";
 import { ArchwayFrame } from "@/components/museum-v2/ArchwayFrame";
 import { WingArchSignage } from "@/components/museum-v2/WingArchSignage";
-import { LobbyBench } from "@/components/museum/LobbyBench";
-import { LobbySideTable } from "@/components/museum/LobbySideTable";
-import { ReceptionCounter } from "@/components/museum/ReceptionCounter";
+// LOBBY REMOVED (2026-08-13): reception furniture - the hub is now an
+// undecorated connector between wings, not a staffed reception area.
+// import { LobbyBench } from "@/components/museum/LobbyBench";
+// import { LobbySideTable } from "@/components/museum/LobbySideTable";
+// import { ReceptionCounter } from "@/components/museum/ReceptionCounter";
 import { DOOR_WIDTH, ROOM_HEIGHT } from "@/lib/museum/roomConstants";
 import {
   WALL_COLOR,
@@ -29,32 +33,38 @@ interface LobbyHubShellProps {
   highContrast?: boolean;
 }
 
-function PhotoFrame({ photo, position }: { photo: LobbyPhoto; position: [number, number, number] }) {
-  const texture = useTexture(photo.url);
-  return (
-    <group position={position} rotation={[0, Math.PI / 2, 0]}>
-      <mesh>
-        <planeGeometry args={[2.2, 1.6]} />
-        <meshStandardMaterial color={MUSEUM_GOLD} roughness={0.4} metalness={0.3} />
-      </mesh>
-      <mesh position={[0, 0, 0.01]}>
-        <planeGeometry args={[2.0, 1.4]} />
-        <meshBasicMaterial map={texture} />
-      </mesh>
-    </group>
-  );
-}
+// LOBBY REMOVED (2026-08-13): PhotoFrame backed the west-wall photo
+// wall - left fully intact, unused, for restoration.
+// function PhotoFrame({ photo, position }: { photo: LobbyPhoto; position: [number, number, number] }) {
+//   const texture = useTexture(photo.url);
+//   return (
+//     <group position={position} rotation={[0, Math.PI / 2, 0]}>
+//       <mesh>
+//         <planeGeometry args={[2.2, 1.6]} />
+//         <meshStandardMaterial color={MUSEUM_GOLD} roughness={0.4} metalness={0.3} />
+//       </mesh>
+//       <mesh position={[0, 0, 0.01]}>
+//         <planeGeometry args={[2.0, 1.4]} />
+//         <meshBasicMaterial map={texture} />
+//       </mesh>
+//     </group>
+//   );
+// }
 
 /**
  * LobbyHubShell
- * museum-v2's reception lobby - a ~20x20 room (distinct from the
- * existing museum's Lobby/RoomsShell, which this route never imports
- * or modifies). North wall carries one Entry arch per wing (gapped and
- * signed); west wall carries the photo wall; south/east walls are
- * plain. Reuses the existing, generic lobby furniture components
- * as-is.
+ * museum-v2's reception hub - a ~20x20 room (distinct from the existing
+ * museum's Lobby/RoomsShell, which this route never imports or
+ * modifies) connecting the wings. North wall carries one Entry arch per
+ * wing (gapped and signed); south/east/west walls are plain.
+ * LOBBY REMOVED (2026-08-13): the hub's floor/wall/ceiling geometry and
+ * entry arches stay - both wings still need to physically connect and
+ * be signed - but the photo wall and reception furniture (bench/side
+ * table/counter) are commented out below, since there's no reception
+ * function left for them to dress. See the matching markers below for
+ * exactly what's restorable and how.
  */
-export function LobbyHubShell({ wings, lobbyPhotos, highContrast }: LobbyHubShellProps) {
+export function LobbyHubShell({ wings, highContrast }: LobbyHubShellProps) {
   const wallColor = highContrast ? HIGH_CONTRAST_WALL_COLOR : WALL_COLOR;
   const ceilingColor = highContrast ? HIGH_CONTRAST_CEILING_COLOR : CEILING_COLOR;
   const floorColor = highContrast ? HIGH_CONTRAST_FLOOR_COLOR : FLOOR_COLOR;
@@ -69,7 +79,8 @@ export function LobbyHubShell({ wings, lobbyPhotos, highContrast }: LobbyHubShel
   }
   northSegments.push({ start: cursor, end: LOBBY_HALF_W });
 
-  const photos = (lobbyPhotos ?? []).slice(0, 4).sort((a, b) => a.position - b.position);
+  // LOBBY REMOVED (2026-08-13): `photos` fed the photo-wall block below.
+  // const photos = (lobbyPhotos ?? []).slice(0, 4).sort((a, b) => a.position - b.position);
 
   return (
     <group>
@@ -126,6 +137,7 @@ export function LobbyHubShell({ wings, lobbyPhotos, highContrast }: LobbyHubShel
         );
       })}
 
+      {/* LOBBY REMOVED (2026-08-13): west-wall photo wall.
       {photos.length > 0 && (
         <Suspense fallback={null}>
           {photos.map((photo, i) => (
@@ -133,6 +145,7 @@ export function LobbyHubShell({ wings, lobbyPhotos, highContrast }: LobbyHubShel
           ))}
         </Suspense>
       )}
+      */}
 
       {/* Two pillars flanking the walk path (not one centered pillar
           blocking it - that was an earlier bug: a single pillar at x=0
@@ -150,6 +163,8 @@ export function LobbyHubShell({ wings, lobbyPhotos, highContrast }: LobbyHubShel
         </group>
       ))}
 
+      {/* LOBBY REMOVED (2026-08-13): reception furniture + its entrance
+          mat - no reception function left for them to dress.
       <LobbyBench position={[-6, 0, LOBBY_HALF_D - 3.5]} rotationY={Math.PI} />
       <LobbyBench position={[6, 0, LOBBY_HALF_D - 3.5]} rotationY={Math.PI} />
       <LobbySideTable position={[7.5, 0, LOBBY_HALF_D - 3.5]} />
@@ -159,6 +174,7 @@ export function LobbyHubShell({ wings, lobbyPhotos, highContrast }: LobbyHubShel
         <planeGeometry args={[DOOR_WIDTH + 1.5, 2.5]} />
         <meshStandardMaterial color={highContrast ? "#5A1F1F" : "#6E2424"} side={THREE.DoubleSide} />
       </mesh>
+      */}
     </group>
   );
 }

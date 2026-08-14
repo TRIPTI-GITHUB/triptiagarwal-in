@@ -54,7 +54,7 @@ export function OrientationPrompt({ isTouch }: OrientationPromptProps) {
     <div
       className={
         // top-28 clears the top-right control row even when it wraps to
-        // a second line on narrow phones (ReturnToLobby/Search/Teleport/
+        // a second line on narrow phones (Exit/Search/Teleport/
         // TourControls/Settings don't all fit on one line under ~400px).
         "absolute top-28 left-1/2 -translate-x-1/2 z-20 w-[calc(100%-2rem)] max-w-xs transition-all duration-500 " +
         (visible ? "opacity-100 translate-y-0" : "opacity-0 -translate-y-2 pointer-events-none")

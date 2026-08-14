@@ -18,6 +18,13 @@ interface RoomFreeRoamProps {
   onSelectMode: (mode: MuseumModeChoice) => void;
   turnRef: MutableRefObject<{ left: boolean; right: boolean }>;
   paused?: boolean;
+  // LOBBY REMOVED (2026-08-13): the visitor now spawns inside Room 1
+  // rather than in a foyer facing into it, so the camera's default
+  // facing (-Z) no longer happens to be correct on its own - this
+  // orients it toward the first sheet once, on mount, via THREE's own
+  // lookAt (safer than hand-deriving the rotation). Optional and a
+  // no-op when omitted, so nothing changes for any other usage.
+  initialLookAt?: [number, number, number];
 }
 
 /**
@@ -28,7 +35,7 @@ interface RoomFreeRoamProps {
  * userData.isModeOption (from ModeChoicePoster) selects a mode -
  * both handled by the same click-vs-drag detection.
  */
-export function RoomFreeRoam({ numRooms, onSelectSheet, onSelectMode, turnRef, paused }: RoomFreeRoamProps) {
+export function RoomFreeRoam({ numRooms, onSelectSheet, onSelectMode, turnRef, paused, initialLookAt }: RoomFreeRoamProps) {
   const { camera, gl, scene } = useThree();
 
   const keys = useRef({
@@ -51,6 +58,10 @@ export function RoomFreeRoam({ numRooms, onSelectSheet, onSelectMode, turnRef, p
 
   useEffect(() => {
     camera.rotation.order = "YXZ";
+    if (initialLookAt) {
+      camera.lookAt(new THREE.Vector3(...initialLookAt));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once on mount only, not on every initialLookAt identity change
   }, [camera]);
 
   useEffect(() => {

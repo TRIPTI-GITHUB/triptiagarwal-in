@@ -20,6 +20,9 @@ interface RoomMobileRigProps {
   onSelectSheet: (sheet: ExhibitSheet) => void;
   onSelectMode: (mode: MuseumModeChoice) => void;
   paused?: boolean;
+  // LOBBY REMOVED (2026-08-13): see RoomFreeRoam's identical prop doc -
+  // orients the camera toward the first sheet once, on mount.
+  initialLookAt?: [number, number, number];
 }
 
 /**
@@ -44,12 +47,17 @@ export function RoomMobileRig({
   onSelectSheet,
   onSelectMode,
   paused,
+  initialLookAt,
 }: RoomMobileRigProps) {
   const { camera, gl, scene } = useThree();
   const raycaster = new THREE.Raycaster();
 
   useEffect(() => {
     camera.rotation.order = "YXZ";
+    if (initialLookAt) {
+      camera.lookAt(new THREE.Vector3(...initialLookAt));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- apply once on mount only, not on every initialLookAt identity change
   }, [camera]);
 
   useFrame((_, delta) => {
