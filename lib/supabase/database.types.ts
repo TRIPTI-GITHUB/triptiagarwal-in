@@ -137,6 +137,80 @@ export interface MuseumV2Content {
 }
 
 /**
+ * CoinType / CoinGrade
+ * Mirror the database "check" constraints on coins.coin_type and
+ * coins.grade — keeping these in sync ensures TypeScript rejects
+ * invalid values at write-time, matching what Postgres already
+ * enforces at save-time. `country`, `composition`, and `mintmark` have
+ * no such constraint (genuinely free text across 819 imported rows),
+ * so they stay `string` and filter options for those are read from
+ * DISTINCT values in the data rather than a hardcoded union.
+ */
+export type CoinType =
+  | "Standard circulation coin"
+  | "Circulating commemorative coin"
+  | "Non-circulating coin"
+  | "Other";
+
+export type CoinGrade = "G" | "VG" | "F" | "VF" | "XF" | "AU" | "UNC";
+
+/**
+ * Coin
+ * The full `coins` base table row, including the three
+ * collector-private financial/notes fields (`buying_price_inr`,
+ * `estimate_inr`, `private_comment`). Only ever query this shape from
+ * authenticated/admin code paths — public pages must query
+ * `coins_public` (the `CoinPublic` type below) instead, which the
+ * database view enforces by omitting these columns outright.
+ */
+export interface Coin {
+  id: string;
+  country: string;
+  issuer: string | null;
+  currency: string | null;
+  face_value: number | null;
+  title: string;
+  coin_type: CoinType | null;
+  shape: string | null;
+  composition: string | null;
+  weight_g: number | null;
+  diameter_mm: number | null;
+  thickness_mm: number | null;
+  orientation: string | null;
+  year: number | null;
+  year_raw: string | null;
+  year_calendar: string | null;
+  mintmark: string | null;
+  grade: CoinGrade | null;
+  quantity: number;
+  for_exchange: boolean;
+  collection_tag: string | null;
+  obverse_image_url: string | null;
+  reverse_image_url: string | null;
+  comment: string | null;
+  public_comment: string | null;
+  buying_price_inr: number | null;
+  estimate_inr: number | null;
+  private_comment: string | null;
+  slug: string | null;
+  is_published: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * CoinPublic
+ * The `coins_public` view — every `Coin` field except the three
+ * private financial/notes columns, already filtered to
+ * `is_published = true` by the view definition itself. `comment` (the
+ * curator's internal working note, distinct from `public_comment`) is
+ * still present in the view as defined in the database today; treat it
+ * as not intended for display and prefer `public_comment` in any
+ * public-facing UI.
+ */
+export type CoinPublic = Omit<Coin, "buying_price_inr" | "estimate_inr" | "private_comment">;
+
+/**
  * ExhibitSheetCategory
  * Mirrors the database "check" constraint on exhibit_sheets.category -
  * 'award' sheets get the distinct spotlight/glow treatment (Design Doc
