@@ -52,11 +52,16 @@ export function CoinFilterSidebar({ facets }: CoinFilterSidebarProps) {
 
   const [yearMin, setYearMin] = useState(searchParams.get("yearMin") ?? "");
   const [yearMax, setYearMax] = useState(searchParams.get("yearMax") ?? "");
+  const [syncedSearch, setSyncedSearch] = useState(searchParams.toString());
 
-  useEffect(() => {
+  // Resets the year fields when the URL changes from outside this
+  // component (e.g. "Clear all") - adjusted during render rather than
+  // in an effect, per React's guidance for state derived from props.
+  if (searchParams.toString() !== syncedSearch) {
+    setSyncedSearch(searchParams.toString());
     setYearMin(searchParams.get("yearMin") ?? "");
     setYearMax(searchParams.get("yearMax") ?? "");
-  }, [searchParams]);
+  }
 
   useEffect(() => {
     const handle = setTimeout(() => {
@@ -65,9 +70,9 @@ export function CoinFilterSidebar({ facets }: CoinFilterSidebarProps) {
       if (yearMin !== currentMin || yearMax !== currentMax) {
         setParams({ yearMin: yearMin || null, yearMax: yearMax || null });
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- debounced against latest input only
     }, 500);
     return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- debounced against latest input only
   }, [yearMin, yearMax]);
 
   const hasActiveFilters = Array.from(searchParams.keys()).some((key) => key !== "sort" && key !== "page");

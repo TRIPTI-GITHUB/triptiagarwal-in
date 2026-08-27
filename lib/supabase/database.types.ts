@@ -91,6 +91,44 @@ export interface Post {
   published: boolean;
   created_at: string;
   updated_at: string;
+  // The date the milestone actually happened, independent of
+  // created_at (when the row was authored) - blog ordering/display
+  // uses this, not created_at, so a post can be backdated freely.
+  event_date: string;
+}
+
+export type PostMediaType = "image" | "video";
+export type VideoPlatform = "youtube" | "instagram" | "facebook" | "other";
+export type PostLinkPlatform = "facebook" | "instagram" | "youtube" | "other";
+
+/**
+ * PostMedia
+ * A post's photo gallery (media_type "image", uploaded to the
+ * blog-media bucket) and linked videos (media_type "video" - `url`
+ * points at wherever the video already lives on YouTube/Instagram/
+ * Facebook; videos are never uploaded, only linked, to avoid
+ * storage/bandwidth cost). `video_platform` is null for images.
+ */
+export interface PostMedia {
+  id: string;
+  post_id: string;
+  media_type: PostMediaType;
+  url: string;
+  video_platform: VideoPlatform | null;
+  caption: string | null;
+  sort_order: number;
+  created_at: string;
+}
+
+/** A single "View on X" outbound link attached to a post. */
+export interface PostLink {
+  id: string;
+  post_id: string;
+  platform: PostLinkPlatform;
+  url: string;
+  label: string | null;
+  sort_order: number;
+  created_at: string;
 }
 
 /**

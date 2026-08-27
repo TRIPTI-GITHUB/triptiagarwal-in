@@ -12,3 +12,21 @@ export function formatDate(dateString: string): string {
     day: "numeric",
   });
 }
+
+/**
+ * formatEventDate
+ * For a plain SQL `date` column (e.g. posts.event_date, "2025-01-01"
+ * with no time/timezone). `new Date("2025-01-01")` parses as UTC
+ * midnight, so formatting it against a non-UTC local timezone can
+ * silently print the wrong calendar day. Building the Date from its
+ * Y/M/D parts directly keeps the displayed day exact regardless of
+ * the server's timezone.
+ */
+export function formatEventDate(dateString: string): string {
+  const [year, month, day] = dateString.split("-").map(Number);
+  return new Date(year, month - 1, day).toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}

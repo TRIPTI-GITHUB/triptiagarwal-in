@@ -3,7 +3,7 @@ import { Container } from "@/components/ui/Container";
 import { Section } from "@/components/ui/Section";
 import { PostCard } from "@/components/blog/PostCard";
 import { createClient } from "@/lib/supabase/server";
-import type { Post } from "@/lib/supabase/database.types";
+import { fetchPublishedPosts } from "@/lib/blog/queries";
 
 export const metadata: Metadata = {
   title: "Blog",
@@ -20,13 +20,7 @@ export const metadata: Metadata = {
  */
 export default async function BlogIndex() {
   const supabase = await createClient();
-
-  const { data: posts } = await supabase
-    .from("posts")
-    .select("*")
-    .eq("published", true)
-    .order("created_at", { ascending: false })
-    .returns<Post[]>();
+  const posts = await fetchPublishedPosts(supabase);
 
   return (
     <Section>

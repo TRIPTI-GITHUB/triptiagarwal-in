@@ -12,7 +12,7 @@ interface SocialIconsProps {
 // licensing) - simple inline monogram badges for all five platforms,
 // matching BrandIdentity.md's "minimal, consistent, elegant"
 // iconography rule rather than sourcing external brand marks.
-function MonogramIcon({ letter }: { letter: string }) {
+export function MonogramIcon({ letter }: { letter: string }) {
   return (
     <span className="w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px] font-semibold leading-none">
       {letter}

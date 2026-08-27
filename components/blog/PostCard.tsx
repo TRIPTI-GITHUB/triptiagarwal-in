@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Card } from "@/components/ui/Card";
-import { formatDate } from "@/lib/utils";
+import { formatEventDate } from "@/lib/utils";
 import type { Post } from "@/lib/supabase/database.types";
 
 interface PostCardProps {
@@ -26,7 +26,7 @@ export function PostCard({ post }: PostCardProps) {
           />
         )}
         <p className="text-xs uppercase tracking-wide text-brand-gold mb-2">
-          {formatDate(post.created_at)}
+          {formatEventDate(post.event_date)}
         </p>
         <h3 className="font-heading font-semibold text-lg text-brand-charcoal mb-2">
           {post.title}

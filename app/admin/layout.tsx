@@ -10,10 +10,12 @@ export const metadata: Metadata = {
 
 /**
  * Shared shell for everything under /admin. Access is actually gated
- * by middleware.ts (which redirects unauthenticated requests before
- * this layout ever renders) - this layout only decides whether to show
- * the logged-in chrome (nav + who's-logged-in + logout), which doubles
- * as a second confirmation that a user session exists.
+ * by proxy.ts (which redirects unauthenticated requests before this
+ * layout ever renders) - this layout only decides whether to show the
+ * logged-in chrome (nav + who's-logged-in + logout), which doubles as
+ * a second confirmation that a user session exists. This nav is
+ * admin-only chrome, separate from lib/navigation.ts (the public site
+ * nav), which intentionally never links here.
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -31,6 +33,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             </Link>
             <Link href="/admin/coins/new" className="hover:text-brand-gold transition-colors">
               + Add coin
+            </Link>
+            <Link href="/admin/blog" className="hover:text-brand-gold transition-colors">
+              Blog
+            </Link>
+            <Link href="/admin/blog/new" className="hover:text-brand-gold transition-colors">
+              + New post
             </Link>
           </nav>
           <div className="flex items-center gap-4 text-sm text-brand-charcoal/60">

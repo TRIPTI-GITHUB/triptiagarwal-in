@@ -13,19 +13,24 @@ export function CoinSearchBar() {
   const { searchParams, setParams } = useCoinFilterParams();
   const initialQuery = searchParams.get("q") ?? "";
   const [value, setValue] = useState(initialQuery);
+  const [syncedQuery, setSyncedQuery] = useState(initialQuery);
 
-  useEffect(() => {
+  // Resets the field when the URL's `q` changes from outside this
+  // component (e.g. "Clear all") - adjusted during render rather than
+  // in an effect, per React's guidance for state derived from props.
+  if (initialQuery !== syncedQuery) {
+    setSyncedQuery(initialQuery);
     setValue(initialQuery);
-  }, [initialQuery]);
+  }
 
   useEffect(() => {
     const handle = setTimeout(() => {
       if (value !== initialQuery) {
         setParams({ q: value.trim() || null });
       }
-      // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run on value change; comparing against the latest URL value here would cause an infinite loop
     }, 350);
     return () => clearTimeout(handle);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- only re-run on value change; comparing against the latest URL value here would cause an infinite loop
   }, [value]);
 
   return (
