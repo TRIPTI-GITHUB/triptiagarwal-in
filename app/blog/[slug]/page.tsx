@@ -4,6 +4,7 @@ import { Container } from "@/components/ui/Container";
 import { Section } from "@/components/ui/Section";
 import { PhotoGallery } from "@/components/blog/PhotoGallery";
 import { VideoEmbed } from "@/components/blog/VideoEmbed";
+import { DocumentsList } from "@/components/blog/DocumentsList";
 import { PostLinksRow } from "@/components/blog/PostLinksRow";
 import { formatEventDate } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/server";
@@ -64,6 +65,7 @@ export default async function PostPage({ params }: PostPageProps) {
   const links = await fetchPostLinks(supabase, post.id);
   const photos = media.filter((m) => m.media_type === "image");
   const videos = media.filter((m) => m.media_type === "video");
+  const documents = media.filter((m) => m.media_type === "document");
 
   return (
     <Section>
@@ -101,6 +103,13 @@ export default async function PostPage({ params }: PostPageProps) {
             {videos.map((video) => (
               <VideoEmbed key={video.id} video={video} />
             ))}
+          </div>
+        )}
+
+        {documents.length > 0 && (
+          <div className="mt-12">
+            <h2 className="font-heading text-2xl font-semibold text-brand-charcoal mb-5">Files</h2>
+            <DocumentsList documents={documents} />
           </div>
         )}
 

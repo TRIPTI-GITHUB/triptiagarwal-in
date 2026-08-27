@@ -97,17 +97,21 @@ export interface Post {
   event_date: string;
 }
 
-export type PostMediaType = "image" | "video";
+export type PostMediaType = "image" | "video" | "document";
 export type VideoPlatform = "youtube" | "instagram" | "facebook" | "other";
-export type PostLinkPlatform = "facebook" | "instagram" | "youtube" | "other";
+export type PostLinkPlatform = "facebook" | "instagram" | "youtube" | "news" | "other";
 
 /**
  * PostMedia
- * A post's photo gallery (media_type "image", uploaded to the
- * blog-media bucket) and linked videos (media_type "video" - `url`
- * points at wherever the video already lives on YouTube/Instagram/
- * Facebook; videos are never uploaded, only linked, to avoid
- * storage/bandwidth cost). `video_platform` is null for images.
+ * A post's photo gallery (media_type "image"), videos (media_type
+ * "video" - either a real upload to the blog-media bucket, when
+ * `video_platform` is null, or a link to wherever it already lives on
+ * YouTube/Instagram/Facebook, when `video_platform` is set), and other
+ * uploaded files like PPT/PDF (media_type "document"). `file_name` is
+ * the original filename for an upload (any media_type can have one;
+ * mainly used for documents, so a download shows "Exhibit Program.pdf"
+ * instead of a storage path) - null for a linked video, which has no
+ * local file.
  */
 export interface PostMedia {
   id: string;
@@ -116,6 +120,7 @@ export interface PostMedia {
   url: string;
   video_platform: VideoPlatform | null;
   caption: string | null;
+  file_name: string | null;
   sort_order: number;
   created_at: string;
 }

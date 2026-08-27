@@ -42,7 +42,7 @@ export function PhotoGalleryUploader({ photos, onChange }: PhotoGalleryUploaderP
         continue;
       }
       const { data } = supabase.storage.from("blog-media").getPublicUrl(path);
-      uploaded.push({ url: data.publicUrl, caption: "" });
+      uploaded.push({ url: data.publicUrl, fileName: file.name, caption: "" });
     }
 
     setUploading(false);

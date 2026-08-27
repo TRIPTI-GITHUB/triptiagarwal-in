@@ -1,17 +1,30 @@
 import { z } from "zod";
 
 export const VIDEO_PLATFORM_OPTIONS = ["youtube", "instagram", "facebook", "other"] as const;
-export const POST_LINK_PLATFORM_OPTIONS = ["facebook", "instagram", "youtube", "other"] as const;
+export const POST_LINK_PLATFORM_OPTIONS = ["facebook", "instagram", "youtube", "news", "other"] as const;
 
 export const photoItemSchema = z.object({
   url: z.string().url(),
+  fileName: z.string().trim().optional(),
   caption: z.string().trim().optional(),
 });
 
+/**
+ * One video, either uploaded (platform null, fileName set) or linked
+ * to an external platform (platform set, no fileName) - a single
+ * shape so both VideoUploader.tsx and VideoListEditor.tsx can share
+ * one `videos` array in form state.
+ */
 export const videoItemSchema = z.object({
-  platform: z.enum(VIDEO_PLATFORM_OPTIONS),
+  platform: z.enum(VIDEO_PLATFORM_OPTIONS).nullable(),
   url: z.string().url("Enter a valid video URL"),
+  fileName: z.string().trim().optional(),
   caption: z.string().trim().optional(),
+});
+
+export const documentItemSchema = z.object({
+  url: z.string().url(),
+  fileName: z.string().trim().min(1),
 });
 
 export const linkItemSchema = z.object({
@@ -42,12 +55,14 @@ export const postFormSchema = z.object({
   published: z.boolean(),
   photos: z.array(photoItemSchema),
   videos: z.array(videoItemSchema),
+  documents: z.array(documentItemSchema),
   links: z.array(linkItemSchema),
 });
 
 export type PostFormValues = z.infer<typeof postFormSchema>;
 export type PhotoItem = z.infer<typeof photoItemSchema>;
 export type VideoItem = z.infer<typeof videoItemSchema>;
+export type DocumentItem = z.infer<typeof documentItemSchema>;
 export type LinkItem = z.infer<typeof linkItemSchema>;
 
 /** Suggests a URL slug from a title (e.g. "20 Years of Postcrossing" -> "20-years-of-postcrossing"). */

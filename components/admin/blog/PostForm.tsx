@@ -8,7 +8,9 @@ import { postFormSchema, suggestPostSlug, type PostFormValues } from "@/lib/blog
 import { savePost, deletePost } from "@/lib/blog/actions";
 import { CoverImageUploader } from "@/components/admin/blog/CoverImageUploader";
 import { PhotoGalleryUploader } from "@/components/admin/blog/PhotoGalleryUploader";
+import { VideoUploader } from "@/components/admin/blog/VideoUploader";
 import { VideoListEditor } from "@/components/admin/blog/VideoListEditor";
+import { DocumentUploader } from "@/components/admin/blog/DocumentUploader";
 import { LinkListEditor } from "@/components/admin/blog/LinkListEditor";
 import type { AdminPostWithRelations } from "@/lib/blog/adminQueries";
 
@@ -34,6 +36,7 @@ function buildDefaultValues(existing?: AdminPostWithRelations): PostFormValues {
       published: false,
       photos: [],
       videos: [],
+      documents: [],
       links: [],
     };
   }
@@ -49,10 +52,18 @@ function buildDefaultValues(existing?: AdminPostWithRelations): PostFormValues {
     published: post.published,
     photos: media
       .filter((m) => m.media_type === "image")
-      .map((m) => ({ url: m.url, caption: m.caption ?? "" })),
+      .map((m) => ({ url: m.url, fileName: m.file_name ?? undefined, caption: m.caption ?? "" })),
     videos: media
       .filter((m) => m.media_type === "video")
-      .map((m) => ({ platform: m.video_platform ?? "other", url: m.url, caption: m.caption ?? "" })),
+      .map((m) => ({
+        platform: m.video_platform,
+        url: m.url,
+        fileName: m.file_name ?? undefined,
+        caption: m.caption ?? "",
+      })),
+    documents: media
+      .filter((m) => m.media_type === "document")
+      .map((m) => ({ url: m.url, fileName: m.file_name ?? "" })),
     links: links.map((l) => ({ platform: l.platform, url: l.url, label: l.label ?? "" })),
   };
 }
@@ -80,6 +91,7 @@ export function PostForm({ mode, existing }: PostFormProps) {
   const coverImageUrl = watch("cover_image_url");
   const photos = watch("photos");
   const videos = watch("videos");
+  const documents = watch("documents");
   const links = watch("links");
   const slugRegister = register("slug");
 
@@ -196,13 +208,22 @@ export function PostForm({ mode, existing }: PostFormProps) {
         <PhotoGalleryUploader photos={photos} onChange={(next) => setValue("photos", next, { shouldValidate: true })} />
       </fieldset>
 
-      <fieldset className="border-t border-brand-gold/20 pt-6">
-        <legend className="font-heading text-lg font-semibold text-brand-charcoal mb-3">Videos</legend>
-        <VideoListEditor videos={videos} onChange={(next) => setValue("videos", next, { shouldValidate: true })} />
+      <fieldset className="border-t border-brand-gold/20 pt-6 space-y-5">
+        <legend className="font-heading text-lg font-semibold text-brand-charcoal mb-1">Videos</legend>
+        <VideoUploader videos={videos} onChange={(next) => setValue("videos", next, { shouldValidate: true })} />
+        <div>
+          <span className="block text-sm font-medium text-brand-charcoal mb-1.5">Or link an existing video</span>
+          <VideoListEditor videos={videos} onChange={(next) => setValue("videos", next, { shouldValidate: true })} />
+        </div>
       </fieldset>
 
       <fieldset className="border-t border-brand-gold/20 pt-6">
-        <legend className="font-heading text-lg font-semibold text-brand-charcoal mb-3">Social links</legend>
+        <legend className="font-heading text-lg font-semibold text-brand-charcoal mb-3">Other files (PPT, PDF, etc.)</legend>
+        <DocumentUploader documents={documents} onChange={(next) => setValue("documents", next, { shouldValidate: true })} />
+      </fieldset>
+
+      <fieldset className="border-t border-brand-gold/20 pt-6">
+        <legend className="font-heading text-lg font-semibold text-brand-charcoal mb-3">Links</legend>
         <LinkListEditor links={links} onChange={(next) => setValue("links", next, { shouldValidate: true })} />
       </fieldset>
 

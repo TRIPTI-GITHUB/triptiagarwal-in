@@ -21,14 +21,26 @@ const PLATFORM_LETTER: Record<VideoPlatform, string> = {
 };
 
 /**
- * One post_media video row. YouTube plays inline via an iframe embed
- * when a video ID can actually be parsed from the URL; every other
- * platform (and any unparseable YouTube URL) renders a "Watch on X ↗"
- * link-out card instead - videos are only ever linked, never uploaded,
- * so there's no local file to fall back to rendering.
+ * One post_media video row. `video_platform` null means a real file
+ * was uploaded to blog-media, which plays via a plain HTML5 <video>
+ * tag. When it's set, the video is a link to somewhere else: YouTube
+ * plays inline via an iframe embed when a video ID can actually be
+ * parsed from the URL; every other platform (and any unparseable
+ * YouTube URL) renders a "Watch on X ↗" link-out card instead.
  */
 export function VideoEmbed({ video }: VideoEmbedProps) {
-  const platform = video.video_platform ?? "other";
+  if (video.video_platform === null) {
+    return (
+      <div>
+        <video controls preload="metadata" className="w-full aspect-video bg-black rounded-sm border border-brand-gold/20">
+          <source src={video.url} />
+        </video>
+        {video.caption && <p className="text-sm text-brand-charcoal/70 mt-2">{video.caption}</p>}
+      </div>
+    );
+  }
+
+  const platform = video.video_platform;
   const videoId = platform === "youtube" ? parseYouTubeVideoId(video.url) : null;
 
   if (videoId) {

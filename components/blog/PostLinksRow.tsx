@@ -9,6 +9,7 @@ const PLATFORM_LETTER: Record<PostLinkPlatform, string> = {
   facebook: "F",
   instagram: "I",
   youtube: "Y",
+  news: "N",
   other: "L",
 };
 
@@ -16,10 +17,11 @@ const PLATFORM_LABEL: Record<PostLinkPlatform, string> = {
   facebook: "Facebook",
   instagram: "Instagram",
   youtube: "YouTube",
+  news: "the news article",
   other: "the source",
 };
 
-/** "View on Facebook/Instagram/YouTube" outbound buttons from post_links. */
+/** "View on Facebook/Instagram/YouTube/News" outbound buttons from post_links. */
 export function PostLinksRow({ links }: PostLinksRowProps) {
   if (links.length === 0) return null;
 

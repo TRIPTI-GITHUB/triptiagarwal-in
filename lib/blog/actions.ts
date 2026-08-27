@@ -25,6 +25,7 @@ async function replacePostMediaAndLinks(supabase: SupabaseClient, postId: string
       url: photo.url,
       video_platform: null,
       caption: photo.caption || null,
+      file_name: photo.fileName || null,
       sort_order: index,
     })),
     ...values.videos.map((video, index) => ({
@@ -33,6 +34,16 @@ async function replacePostMediaAndLinks(supabase: SupabaseClient, postId: string
       url: video.url,
       video_platform: video.platform,
       caption: video.caption || null,
+      file_name: video.fileName || null,
+      sort_order: index,
+    })),
+    ...values.documents.map((doc, index) => ({
+      post_id: postId,
+      media_type: "document" as const,
+      url: doc.url,
+      video_platform: null,
+      caption: null,
+      file_name: doc.fileName,
       sort_order: index,
     })),
   ];
@@ -134,16 +145,17 @@ export async function deletePost(id: string): Promise<PostActionResult> {
       .maybeSingle();
     if (postError) throw postError;
 
-    const { data: media, error: mediaError } = await supabase
-      .from("post_media")
-      .select("url, media_type")
-      .eq("post_id", id);
+    const { data: media, error: mediaError } = await supabase.from("post_media").select("url").eq("post_id", id);
     if (mediaError) throw mediaError;
 
-    const uploadedUrls = [
-      post?.cover_image_url,
-      ...(media ?? []).filter((m) => m.media_type === "image").map((m) => m.url),
-    ].filter((url): url is string => Boolean(url));
+    // Every post_media URL is checked, regardless of type - a linked
+    // video's URL points at YouTube/Instagram/etc, and
+    // extractBlogMediaPath safely returns null for those, so this
+    // covers uploaded photos/videos/documents without needing to
+    // filter by media_type here.
+    const uploadedUrls = [post?.cover_image_url, ...(media ?? []).map((m) => m.url)].filter(
+      (url): url is string => Boolean(url)
+    );
 
     const paths = uploadedUrls.map(extractBlogMediaPath).filter((path): path is string => Boolean(path));
     if (paths.length > 0) {

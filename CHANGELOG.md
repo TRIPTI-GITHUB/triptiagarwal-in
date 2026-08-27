@@ -2,6 +2,14 @@
 
 All notable changes to this project are recorded here, newest first.
 
+## 2026-08-27 — Blog: real video/document uploads, "news" link platform
+
+- `post_media` gained `file_name` and a `document` media type — videos can now be either **uploaded** (`video_platform` null, plays via a plain HTML5 `<video>` tag) or **linked** (`video_platform` set, same YouTube-embed/"Watch on X ↗" behavior as before), and PPT/PDF/etc. files upload as a third media type, listed as download links using their original filename.
+- `post_links` gained a `news` platform, for linking out to a news article about the milestone (separate from an actual video upload).
+- `blog-media` bucket's per-file limit raised to 200MB to accommodate video/document uploads (previously implicitly photo-sized).
+- Admin form's Videos section now offers both a multi-file uploader (with per-file size shown during upload) and the existing "link an existing video" control side by side, feeding the same list.
+- Fixed a bug in `VideoEmbed.tsx`: an uploaded video (`video_platform` null) was defaulting to `"other"` and rendering a broken "Watch on the source ↗" card pointing at its own storage URL, instead of playing inline — caught while updating this component for the new upload case.
+
 ## 2026-08-27 — Blog: hobby-journey milestones (photos, videos, links)
 
 - `posts` gained `event_date` (the date a milestone actually happened, independent of `created_at`) — `/blog` now orders and displays by this, not `created_at`.
