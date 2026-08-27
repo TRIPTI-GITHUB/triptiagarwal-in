@@ -43,6 +43,11 @@ export const NAV_ITEMS: NavItem[] = [
       },
       { href: "/journey", label: "Journey", description: "A decade-long timeline of milestones." },
       {
+        href: "/about/key-milestones",
+        label: "Key Milestones",
+        description: "Milestone highlights, one image at a time.",
+      },
+      {
         href: "/about/recognition",
         label: "Recognition & Memberships",
         description: "Formal memberships, awards, and accolades.",
