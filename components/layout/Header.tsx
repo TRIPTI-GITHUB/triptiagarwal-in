@@ -38,12 +38,12 @@ export function Header() {
 
           <div className="hidden md:flex items-center gap-5">
             <HeaderSearch />
-            <a
-              href="#contact"
+            <Link
+              href="/contact"
               className="text-xs font-medium uppercase tracking-widest text-brand-charcoal/70 hover:text-brand-charcoal transition-colors"
             >
               Contact
-            </a>
+            </Link>
           </div>
 
           <button onClick={() => setMobileOpen(true)} aria-label="Open menu" className="md:hidden text-brand-charcoal">

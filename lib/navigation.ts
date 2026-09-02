@@ -78,6 +78,7 @@ export const NAV_ITEMS: NavItem[] = [
     ],
   },
   { href: "/blog", label: "Blog" },
+  { href: "/contact", label: "Contact Us" },
 ];
 
 // The five confirmed platforms (PRD section 7.5) - rendered in this

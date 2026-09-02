@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Container } from "@/components/ui/Container";
 import { Section } from "@/components/ui/Section";
+import { UnderDevelopmentBanner } from "@/components/home/UnderDevelopmentBanner";
 import { Hero } from "@/components/home/Hero";
 import { HighlightStrip } from "@/components/home/HighlightStrip";
 import { StoryTeaser } from "@/components/home/StoryTeaser";
@@ -44,6 +45,7 @@ export default async function Home() {
 
   return (
     <>
+      <UnderDevelopmentBanner />
       <Hero imageUrl={homeHero?.imageUrl} imageAlt={homeHero?.alt} />
 
       <Section surface="white">

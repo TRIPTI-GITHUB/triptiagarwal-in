@@ -80,9 +80,9 @@ export function MobileNavOverlay({ open, onClose }: MobileNavOverlayProps) {
             <Search size={16} strokeWidth={1.5} />
             <span className="text-sm">Search</span>
           </div>
-          <a href="#contact" onClick={onClose} className="text-sm text-brand-teal hover:underline">
+          <Link href="/contact" onClick={onClose} className="text-sm text-brand-teal hover:underline">
             Contact
-          </a>
+          </Link>
         </div>
       </nav>
     </div>
