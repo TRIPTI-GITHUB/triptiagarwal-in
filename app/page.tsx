@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { Container } from "@/components/ui/Container";
 import { Section } from "@/components/ui/Section";
 import { UnderDevelopmentBanner } from "@/components/home/UnderDevelopmentBanner";
-import { Hero } from "@/components/home/Hero";
 import { HighlightStrip } from "@/components/home/HighlightStrip";
 import { StoryTeaser } from "@/components/home/StoryTeaser";
 import { PullQuoteBanner } from "@/components/home/PullQuoteBanner";
@@ -23,10 +22,13 @@ export const metadata: Metadata = {
 
 /**
  * Home
- * Server Component - rebuilt per Homepage_UI_Design_Brief_wordpress.md:
- * Hero, Highlight Strip, Story Teaser, Pull-Quote Banner. Fetches
- * `profiles` (existing) and `site_content` (new) once, passing data
- * down as props rather than each section querying independently.
+ * Server Component - Highlight Strip, Story Teaser, Pull-Quote Banner.
+ * The full-bleed image Hero (2026-09-03: removed - took up a full
+ * viewport of space above the fold with no informational value) no
+ * longer renders here; `Hero.tsx` itself is left in place for reuse on
+ * an interior page later. Fetches `profiles` (existing) and
+ * `site_content` (new) once, passing data down as props rather than
+ * each section querying independently.
  *
  * If `site_content` doesn't exist yet (migration not applied), the
  * query returns a null-data error response rather than throwing, and
@@ -40,13 +42,11 @@ export default async function Home() {
     supabase.from("site_content").select("*").limit(1).maybeSingle<SiteContent>(),
   ]);
 
-  const homeHero = siteContent?.hero_content?.home ?? null;
   const highlightItems = siteContent?.highlight_strip ?? [];
 
   return (
     <>
       <UnderDevelopmentBanner />
-      <Hero imageUrl={homeHero?.imageUrl} imageAlt={homeHero?.alt} />
 
       <Section surface="white">
         <Container>
