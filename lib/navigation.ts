@@ -68,7 +68,7 @@ export const NAV_ITEMS: NavItem[] = [
       },
     ],
   },
-  { href: "/museum", label: "Museum" },
+  { href: "/museum", label: "3D Museum" },
   {
     href: "/gallery/photo",
     label: "Gallery",

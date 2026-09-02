@@ -18,9 +18,10 @@ export function ExitMuseumButton() {
       href="/museum"
       aria-label="Exit museum (Home key)"
       title="Exit museum - Home key"
-      className="w-9 h-9 rounded-full bg-white/90 hover:bg-white text-brand-charcoal flex items-center justify-center shadow"
+      className="flex items-center gap-1.5 pl-3 pr-4 py-2 rounded-full bg-white/90 hover:bg-white text-brand-charcoal text-xs font-medium shadow"
     >
       <DoorOpen size={16} />
+      Exit
     </Link>
   );
 }

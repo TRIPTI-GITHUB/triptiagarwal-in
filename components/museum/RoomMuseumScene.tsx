@@ -14,7 +14,6 @@ import { Minimap } from "@/components/museum/Minimap";
 import { TourControls } from "@/components/museum/TourControls";
 import { TourArrowNav } from "@/components/museum/TourArrowNav";
 import { TourStopCaption } from "@/components/museum/TourStopCaption";
-import { WelcomeOverlay } from "@/components/museum/WelcomeOverlay";
 import { ExhibitDolly } from "@/components/museum/ExhibitDolly";
 import { ExhibitModal } from "@/components/museum/ExhibitModal";
 import { ProximityTrigger } from "@/components/museum/ProximityTrigger";
@@ -121,14 +120,15 @@ interface RoomMuseumSceneProps {
 
 /**
  * RoomMuseumScene
- * Client Component - the room-based museum's entry point. Starts with a
- * full-screen WelcomeOverlay; dismissing it reveals the museum, already
- * loaded behind it, with the visitor standing at the exhibit's first
- * sheet (LOBBY REMOVED, 2026-08-13 - there is no entrance foyer to
- * spawn in anymore, and no mode-choice poster; the visitor always
- * starts in free-roam, the Minimap orients them, and Guided Tour mode
- * stays reachable via TourControls). handleModeSelect is kept for that
- * top-bar control, not for an in-scene poster.
+ * Client Component - the room-based museum's entry point. Drops the
+ * visitor straight into the scene, standing at the exhibit's first
+ * sheet, with no intermediate launch/welcome screen (removed 2026-09-03
+ * so clicking an exhibit title goes directly inside) (LOBBY REMOVED,
+ * 2026-08-13 - there is no entrance foyer to spawn in anymore, and no
+ * mode-choice poster; the visitor always starts in free-roam, the
+ * Minimap orients them, and Guided Tour mode stays reachable via
+ * TourControls). handleModeSelect is kept for that top-bar control, not
+ * for an in-scene poster.
  *
  * The exhibit vitrine viewer (ExhibitDolly + ExhibitModal) takes over the
  * camera whenever a sheet is selected - the active movement controller
@@ -201,7 +201,6 @@ export function RoomMuseumScene({
   const [tourComplete, setTourComplete] = useState(false);
   const dakDwellTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const [entered, setEntered] = useState(false);
   const [dakMode, setDakMode] = useState<DakMode>("idle");
   const [dakDismissed, setDakDismissed] = useState(false);
   const [dakLine, setDakLine] = useState<string>(DAK_GREETING_LINES[0]);
@@ -260,12 +259,11 @@ export function RoomMuseumScene({
   }, [dakDismissed]);
 
   // One-time greeting: fires once per session, shortly after the
-  // visitor dismisses WelcomeOverlay. A ProximityTrigger doesn't fit
-  // here - the camera spawns already inside Room 1, at the first
-  // sheet, so there's no boundary to cross - `entered` is already the
-  // exact "visitor has arrived" signal.
+  // visitor spawns in. A ProximityTrigger doesn't fit here - the
+  // camera spawns already inside Room 1, at the first sheet, so
+  // there's no boundary to cross to signal "visitor has arrived".
   useEffect(() => {
-    if (!entered || hasGreetedRef.current) return;
+    if (hasGreetedRef.current) return;
 
     dakGreetTimerRef.current = setTimeout(() => {
       if (dakDismissedRef.current) return;
@@ -279,7 +277,7 @@ export function RoomMuseumScene({
       if (dakGreetTimerRef.current) clearTimeout(dakGreetTimerRef.current);
       if (dakRevertTimerRef.current) clearTimeout(dakRevertTimerRef.current);
     };
-  }, [entered]);
+  }, []);
 
   const sheetLabels = useMemo(() => buildSheetLabels(rooms), [rooms]);
   const placements = useMemo(() => getFramePlacements(rooms), [rooms]);
@@ -673,9 +671,9 @@ export function RoomMuseumScene({
         </div>
       )}
 
-      <ApproachCue visible={entered && !viewerActive && !tourMode && nearSheet !== null} />
+      <ApproachCue visible={!viewerActive && !tourMode && nearSheet !== null} />
 
-      {entered && !viewerActive && <OrientationPrompt isTouch={isTouch} />}
+      {!viewerActive && <OrientationPrompt isTouch={isTouch} />}
 
       {!viewerActive && !tourMode && (
         <>
@@ -761,12 +759,6 @@ export function RoomMuseumScene({
       {!viewerActive && (
         <Minimap numRooms={numRooms} poseRef={poseRef} guidePoseRef={tourMode ? dakPoseRef : undefined} />
       )}
-
-      <WelcomeOverlay
-        title={exhibitTitle ?? "The Gallery"}
-        visible={!entered}
-        onEnter={() => setEntered(true)}
-      />
 
       {selectedSheet && (
         <ExhibitModal
