@@ -289,3 +289,60 @@ export interface ExhibitSheet {
   created_at: string;
   updated_at: string;
 }
+
+export type DeviceType = "mobile" | "tablet" | "desktop";
+
+/**
+ * VisitorSession
+ * One anonymous browsing session, written only by the
+ * /api/analytics/* route handlers via the service-role key - never
+ * inserted/updated directly from the browser (see the RLS policies on
+ * this table, which grant SELECT only, to admins). `session_key` is a
+ * client-generated UUID scoped to sessionStorage, never a cookie or
+ * localStorage value, and never links to a signed-in identity.
+ */
+export interface VisitorSession {
+  id: string;
+  session_key: string;
+  started_at: string;
+  ended_at: string | null;
+  duration_seconds: number | null;
+  entry_page: string;
+  exit_page: string | null;
+  referrer_domain: string | null;
+  utm_source: string | null;
+  utm_medium: string | null;
+  utm_campaign: string | null;
+  country: string | null;
+  city: string | null;
+  device_type: DeviceType | null;
+  browser: string | null;
+  os: string | null;
+  is_bot: boolean;
+  page_view_count: number;
+  created_at: string;
+}
+
+export interface PageView {
+  id: string;
+  session_id: string;
+  path: string;
+  viewed_at: string;
+  time_on_page_seconds: number | null;
+}
+
+export interface AnalyticsCountEntry {
+  count: number;
+  [key: string]: string | number;
+}
+
+/** Long-term daily aggregate - survives the 18-month raw-row purge (see the retention cron job). */
+export interface AnalyticsDailyRollup {
+  day: string;
+  total_sessions: number;
+  total_page_views: number;
+  avg_duration_seconds: number | null;
+  top_countries: AnalyticsCountEntry[] | null;
+  top_referrers: AnalyticsCountEntry[] | null;
+  top_pages: AnalyticsCountEntry[] | null;
+}

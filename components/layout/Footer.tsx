@@ -99,6 +99,14 @@ export async function Footer() {
           </p>
           <p className="text-xs italic text-brand-teal">Preserving the Past. Inspiring the Future.</p>
         </Container>
+        <Container className="pb-6 text-center">
+          <p className="text-xs text-brand-charcoal/50">
+            This site uses anonymous visit analytics to improve the experience — no personal data is stored.{" "}
+            <Link href="/privacy" className="text-brand-teal hover:underline">
+              Privacy Policy
+            </Link>
+          </p>
+        </Container>
       </div>
     </footer>
   );

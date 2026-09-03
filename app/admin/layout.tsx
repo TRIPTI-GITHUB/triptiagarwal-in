@@ -40,6 +40,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <Link href="/admin/blog/new" className="hover:text-brand-gold transition-colors">
               + New post
             </Link>
+            <Link href="/admin/analytics" className="hover:text-brand-gold transition-colors">
+              Analytics
+            </Link>
           </nav>
           <div className="flex items-center gap-4 text-sm text-brand-charcoal/60">
             <span>{user.email}</span>
